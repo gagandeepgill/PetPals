@@ -5,7 +5,7 @@ import { parseSearchParams } from "@/lib/domain/search";
 import { searchPets } from "@/lib/pets";
 import { petKeys } from "@/lib/query-keys";
 import { FilterBar } from "./_components/FilterBar";
-import { ResultsGrid } from "./_components/ResultsGrid";
+import { SearchView } from "./_components/SearchView";
 
 export const metadata: Metadata = { title: "Search adoptable pets" };
 
@@ -34,7 +34,7 @@ export default async function SearchPage({ searchParams }: Props) {
       </div>
       <FilterBar />
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <ResultsGrid />
+        <SearchView />
       </HydrationBoundary>
     </Container>
   );

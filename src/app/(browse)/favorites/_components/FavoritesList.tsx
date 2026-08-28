@@ -42,6 +42,8 @@ function petToCard(pet: Pet): PetCardData {
     listedAt: pet.updatedAt,
     photo: primary ? { url: primary.url, blurDataURL: primary.blurDataURL } : null,
     photoAlt: `${pet.name}, a ${breedLabel}`,
+    lat: pet.location.lat,
+    lon: pet.location.lon,
   };
 }
 

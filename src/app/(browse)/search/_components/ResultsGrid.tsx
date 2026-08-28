@@ -7,8 +7,10 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import { PetCard } from "@/components/ui/PetCard";
 import { CardGrid } from "@/components/ui/primitives";
-import { parseSearchParams, type SearchResponse } from "@/lib/domain/search";
+import { parseSearchParams } from "@/lib/domain/search";
 import { filterToParams, petKeys } from "@/lib/query-keys";
+import { fetchSearchPage } from "@/lib/search-client";
+import { usePetHover } from "./hover-context";
 
 const Summary = styled.p`
   color: ${({ theme }) => theme.colors.textSecondary};
@@ -58,15 +60,8 @@ const LoadingMore = styled.p`
   padding: ${({ theme }) => `${theme.space(6)} 0`};
 `;
 
-async function fetchSearchPage(
-  params: URLSearchParams,
-): Promise<SearchResponse> {
-  const res = await fetch(`/api/pets?${params.toString()}`);
-  if (!res.ok) throw new Error(`search failed: ${res.status}`);
-  return res.json() as Promise<SearchResponse>;
-}
-
 export function ResultsGrid() {
+  const { setHoveredPetId } = usePetHover();
   const searchParams = useSearchParams();
   const filter = useMemo(
     () => parseSearchParams(Object.fromEntries(searchParams.entries())),
@@ -127,7 +122,12 @@ export function ResultsGrid() {
       </Summary>
       <CardGrid>
         {pets.map((pet, i) => (
-          <div key={pet.id} style={{ "--stagger-i": i } as React.CSSProperties}>
+          <div
+            key={pet.id}
+            style={{ "--stagger-i": i } as React.CSSProperties}
+            onMouseEnter={() => setHoveredPetId(pet.id)}
+            onMouseLeave={() => setHoveredPetId(null)}
+          >
             <PetCard pet={pet} priority={i < 4} />
           </div>
         ))}

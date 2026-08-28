@@ -1,5 +1,5 @@
 import type { Pet } from "../domain/pet";
-import type { PetCardData, SearchFilter, SearchResponse } from "../domain/search";
+import { parseBbox, type PetCardData, type SearchFilter, type SearchResponse } from "../domain/search";
 import { ageLabel, photoAlt, type SearchProvider } from "./provider";
 
 /**
@@ -23,6 +23,15 @@ interface DemoSeed {
   compat: Pet["compat"];
   photoUrl: string;
 }
+
+const SEED_COORDS: Record<string, [number, number]> = {
+  "demo-buddy": [38.581, -121.494],
+  "demo-clementine": [38.545, -121.741],
+  "demo-pepper": [38.752, -121.288],
+  "demo-mochi": [38.602, -121.443],
+  "demo-atlas": [38.409, -121.372],
+  "demo-biscuit": [38.678, -121.176],
+};
 
 const SEEDS: DemoSeed[] = [
   {
@@ -126,7 +135,10 @@ const SEEDS: DemoSeed[] = [
 const LISTED_AT = "2026-08-26T09:00:00.000Z";
 
 function toCard(seed: DemoSeed): PetCardData {
+  const [lat, lon] = SEED_COORDS[seed.id] ?? [null, null];
   return {
+    lat,
+    lon,
     id: seed.id,
     name: seed.name,
     species: seed.species as PetCardData["species"],
@@ -180,7 +192,13 @@ function toPet(seed: DemoSeed): Pet {
     organizationName: seed.org,
     sourceLabel: "Demo data",
     sourceUrl: null,
-    location: { lat: 38.58, lon: -121.49, postalCode: "95814", city: seed.city, state: seed.state },
+    location: {
+      lat: SEED_COORDS[seed.id]?.[0] ?? 38.58,
+      lon: SEED_COORDS[seed.id]?.[1] ?? -121.49,
+      postalCode: "95814",
+      city: seed.city,
+      state: seed.state,
+    },
     photos: [
       {
         id: `${seed.id}-photo`,
@@ -211,6 +229,15 @@ function matches(seed: DemoSeed, filter: SearchFilter): boolean {
   const allowed: unknown[] = filter.includeUnknownCompat ? [true, "unknown"] : [true];
   for (const target of filter.goodWith ?? []) {
     if (!allowed.includes(seed.compat[target])) return false;
+  }
+  const box = parseBbox(filter.bbox);
+  if (box) {
+    const coords = SEED_COORDS[seed.id];
+    if (!coords) return false;
+    const [lat, lon] = coords;
+    if (lon < box.minLon || lon > box.maxLon || lat < box.minLat || lat > box.maxLat) {
+      return false;
+    }
   }
   return true;
 }
