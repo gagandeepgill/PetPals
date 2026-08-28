@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Pet, TriState } from "@/lib/domain/pet";
 import { Badge, ButtonAnchor } from "@/components/ui/primitives";
 import { fitNotes, useQuizProfile } from "@/lib/quiz";
+import { ReportAdopted } from "./ReportAdopted";
 
 const Hero = styled.div<{ adopted?: boolean }>`
   position: relative;
@@ -272,6 +273,11 @@ export function PetDetail({ pet, verifiedAgo }: { pet: Pet; verifiedAgo: string 
           From here, you&apos;re in {pet.organizationName}&apos;s hands — they&apos;re the
           experts on {pet.name}. We never stand between you, and we never charge you.
         </OrgMeta>
+        {!gone ? (
+          <div style={{ marginTop: 12 }}>
+            <ReportAdopted petId={pet.id} petName={pet.name} />
+          </div>
+        ) : null}
       </OrgCard>
     </>
   );
