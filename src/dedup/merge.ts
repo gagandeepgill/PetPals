@@ -1,4 +1,5 @@
 import type { Pool } from "pg";
+import { ADAPTERS } from "../ingestion/adapters";
 import { hammingDistance } from "../ingestion/photos";
 import type { PairScore } from "./score";
 
@@ -37,8 +38,21 @@ export async function pickWinner(pool: Pool, petA: string, petB: string): Promis
   return recencyA >= recencyB ? [petA, petB] : [petB, petA];
 }
 
+/** A listing is "fresh" within 3x its source's sync interval (worst case:
+ *  two missed runs), defaulting to 72h for sources not in the registry. */
+function freshnessCase(): { sql: string; params: string[] } {
+  const cases = ADAPTERS.map(
+    (a, i) => `WHEN sl.source = $${i + 2} THEN make_interval(secs => ${Math.round((a.schedule.intervalMs * 3) / 1000)})`,
+  ).join(" ");
+  return {
+    sql: `CASE ${cases} ELSE interval '72 hours' END`,
+    params: ADAPTERS.map((a) => a.sourceId),
+  };
+}
+
 /** Pessimistic status over fresh listings: adopted > pending > available. */
 export async function reconcileStatus(pool: Pool, petId: string): Promise<void> {
+  const fresh = freshnessCase();
   await pool.query(
     `UPDATE pets p SET
        status = COALESCE((
@@ -50,12 +64,12 @@ export async function reconcileStatus(pool: Pool, petId: string): Promise<void> 
          END
          FROM pet_source_links l
          JOIN source_listings sl ON sl.id = l.source_listing_id
-         WHERE l.pet_id = p.id AND sl.last_seen_at > now() - interval '72 hours'
+         WHERE l.pet_id = p.id AND sl.last_seen_at > now() - (${fresh.sql})
        ), 'removed'),
        status_computed_at = now(),
        updated_at = now()
      WHERE p.id = $1`,
-    [petId],
+    [petId, ...fresh.params],
   );
 }
 
@@ -76,8 +90,8 @@ export async function mergePets(
     );
     await client.query("UPDATE pet_photos SET pet_id = $1 WHERE pet_id = $2", [winner, loser]);
 
-    // Survivorship on the projection: longest description; asserted tri-states
-    // fill the winner's unknowns; traits union.
+    // Survivorship on the projection: longest description; asserted values
+    // fill the winner's unknowns (tri-states AND scalar facts); traits union.
     await client.query(
       `UPDATE pets w SET
          description = CASE
@@ -89,6 +103,12 @@ export async function mergePets(
          compat_kids = CASE WHEN w.compat_kids = 'unknown' THEN l.compat_kids ELSE w.compat_kids END,
          compat_dogs = CASE WHEN w.compat_dogs = 'unknown' THEN l.compat_dogs ELSE w.compat_dogs END,
          compat_cats = CASE WHEN w.compat_cats = 'unknown' THEN l.compat_cats ELSE w.compat_cats END,
+         sex = CASE WHEN w.sex = 'unknown' THEN l.sex ELSE w.sex END,
+         size = CASE WHEN w.size = 'unknown' THEN l.size ELSE w.size END,
+         age_group = CASE WHEN w.age_group = 'unknown' THEN l.age_group ELSE w.age_group END,
+         coat_length = CASE WHEN w.coat_length = 'unknown' THEN l.coat_length ELSE w.coat_length END,
+         energy_level = CASE WHEN w.energy_level = 'unknown' THEN l.energy_level ELSE w.energy_level END,
+         raw_breed_text = CASE WHEN w.raw_breed_text = '' THEN l.raw_breed_text ELSE w.raw_breed_text END,
          traits = (SELECT array_agg(DISTINCT t) FROM unnest(w.traits || l.traits) AS t),
          updated_at = now()
        FROM pets l WHERE w.id = $1 AND l.id = $2`,

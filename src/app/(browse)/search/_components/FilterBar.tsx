@@ -103,9 +103,10 @@ const AGE_LABELS: Record<(typeof AGE_OPTIONS)[number], string> = {
 };
 
 /**
- * URL is the only filter store (shareable, back-button-safe); shallow:false so
- * the RSC search page re-renders with each change. Changing any filter drops
- * the cursor — page position is meaningless under a new predicate.
+ * URL is the only filter store (shareable, back-button-safe). Changing any
+ * filter drops the cursor (page position is meaningless under a new
+ * predicate) AND the map bbox — a viewport captured under the old filters
+ * would silently constrain the new search.
  */
 export function FilterBar() {
   const [filters, setFilters] = useQueryStates(
@@ -116,6 +117,7 @@ export function FilterBar() {
       radius: parseAsNumberLiteral(RADII).withDefault(50),
       sort: parseAsStringLiteral(SORT_OPTIONS).withDefault("freshness"),
       cursor: parseAsString,
+      bbox: parseAsString,
     },
     // shallow: filter changes refetch through the client query cache; the RSC
     // page only re-renders on hard navigation.
@@ -125,7 +127,7 @@ export function FilterBar() {
   const toggleAge = (age: (typeof AGE_OPTIONS)[number]) => {
     const current = filters.ageGroup ?? [];
     const next = current.includes(age) ? current.filter((a) => a !== age) : [...current, age];
-    void setFilters({ ageGroup: next.length ? next : null, cursor: null });
+    void setFilters({ ageGroup: next.length ? next : null, cursor: null, bbox: null });
   };
 
   return (
@@ -134,7 +136,7 @@ export function FilterBar() {
         <Chip
           active={filters.species === null}
           aria-pressed={filters.species === null}
-          onClick={() => void setFilters({ species: null, cursor: null })}
+          onClick={() => void setFilters({ species: null, cursor: null, bbox: null })}
         >
           All pets
         </Chip>
@@ -143,11 +145,20 @@ export function FilterBar() {
             key={s}
             active={filters.species === s}
             aria-pressed={filters.species === s}
-            onClick={() => void setFilters({ species: s, cursor: null })}
+            onClick={() => void setFilters({ species: s, cursor: null, bbox: null })}
           >
             {s === "other" ? "Other" : `${s[0]?.toUpperCase()}${s.slice(1)}s`}
           </Chip>
         ))}
+        {filters.bbox ? (
+          <Chip
+            active
+            onClick={() => void setFilters({ bbox: null, cursor: null })}
+            aria-label="Clear map area filter"
+          >
+            Map area ✕
+          </Chip>
+        ) : null}
       </Bar>
       <Bar>
         {AGE_OPTIONS.map((age) => (
@@ -170,7 +181,7 @@ export function FilterBar() {
             defaultValue={filters.zip ?? ""}
             onBlur={(e) => {
               const zip = e.currentTarget.value;
-              void setFilters({ zip: /^\d{5}$/.test(zip) ? zip : null, cursor: null });
+              void setFilters({ zip: /^\d{5}$/.test(zip) ? zip : null, cursor: null, bbox: null });
             }}
           />
         </Field>
@@ -182,6 +193,7 @@ export function FilterBar() {
               void setFilters({
                 radius: Number(e.currentTarget.value) as (typeof RADII)[number],
                 cursor: null,
+                bbox: null,
               })
             }
           >
