@@ -48,6 +48,7 @@ export function SiteHeader() {
         <Wordmark href="/">🐾 Pet Pals</Wordmark>
         <Nav aria-label="Primary">
           <Link href="/search">Search</Link>
+          <Link href="/discover">Discover</Link>
           <Link href="/search?species=dog">Dogs</Link>
           <Link href="/search?species=cat">Cats</Link>
           <Link href="/favorites">Saved{count > 0 ? ` (${count})` : ""}</Link>
