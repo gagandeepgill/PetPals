@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "migrate": "tsx src/scripts/migrate.ts",
     "ingest": "tsx src/ingestion/run.ts",
+    "dedup": "tsx src/dedup/run.ts",
     "takedown": "tsx src/scripts/takedown.ts"
   },
   "dependencies": {
