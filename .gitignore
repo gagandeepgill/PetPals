@@ -4,6 +4,7 @@ out/
 build/
 *.tsbuildinfo
 next-env.d.ts
+public/photos/
 .env
 .env.local
 .env.*.local
