@@ -3,6 +3,7 @@ import type { Pet, PetPhoto, TriState } from "../domain/pet";
 import {
   decodeCursor,
   encodeCursor,
+  parseBbox,
   type PetCardData,
   type SearchFilter,
   type SearchResponse,
@@ -12,6 +13,8 @@ import { ageLabel, photoAlt, type SearchProvider } from "./provider";
 const METERS_PER_MILE = 1609.344;
 
 interface CardRow {
+  lat: number | null;
+  lon: number | null;
   id: string;
   name: string;
   species: string;
@@ -47,12 +50,15 @@ function rowToCard(row: CardRow): PetCardData {
     listedAt: row.updated_at.toISOString(),
     photo: row.photo_url ? { url: row.photo_url, blurDataURL: row.photo_blur } : null,
     photoAlt: photoAlt(row.name, row.age_group, breedLabel),
+    lat: row.lat,
+    lon: row.lon,
   };
 }
 
 const CARD_SELECT = `
   p.id, p.name, p.species, p.age_group, p.raw_breed_text, p.is_mixed,
   p.city, p.state, o.name AS org_name, p.source_label, p.status, p.updated_at,
+  ST_Y(p.location::geometry) AS lat, ST_X(p.location::geometry) AS lon,
   ph.url AS photo_url, ph.blur_data_url AS photo_blur`;
 
 const CARD_JOINS = `
@@ -99,6 +105,16 @@ function applyFilters(w: WhereBuilder, filter: SearchFilter): void {
   const compatValues = filter.includeUnknownCompat ? ["true", "unknown"] : ["true"];
   for (const target of filter.goodWith ?? []) {
     w.add(`p.compat_${target} = ANY(?)`, compatValues);
+  }
+  const box = parseBbox(filter.bbox);
+  if (box) {
+    w.add(
+      "p.location::geometry && ST_MakeEnvelope(?, ?, ?, ?, 4326)",
+      box.minLon,
+      box.minLat,
+      box.maxLon,
+      box.maxLat,
+    );
   }
 }
 

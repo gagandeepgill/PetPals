@@ -28,6 +28,11 @@ export const SearchFilterSchema = z
     goodWith: z.enum(["kids", "dogs", "cats"]).array().optional(),
     /** Tri-state semantics: "unknown" compat matches by default ("Ask the shelter"). */
     includeUnknownCompat: z.coerce.boolean().default(true),
+    /** "minLon,minLat,maxLon,maxLat" — written by the map's moveEnd, read by providers. */
+    bbox: z
+      .string()
+      .regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/)
+      .optional(),
     sort: z.enum(["distance", "freshness"]).default("freshness"),
     cursor: z.string().max(200).optional(),
     limit: z.coerce.number().int().min(1).max(50).default(24),
@@ -38,6 +43,16 @@ export const SearchFilterSchema = z
   });
 
 export type SearchFilter = z.infer<typeof SearchFilterSchema>;
+
+export function parseBbox(
+  bbox: string | undefined,
+): { minLon: number; minLat: number; maxLon: number; maxLat: number } | null {
+  if (!bbox) return null;
+  const parts = bbox.split(",").map(Number);
+  if (parts.length !== 4 || parts.some(Number.isNaN)) return null;
+  const [minLon, minLat, maxLon, maxLat] = parts as [number, number, number, number];
+  return { minLon, minLat, maxLon, maxLat };
+}
 
 /** Hydrated, card-ready projection served to the grid. */
 export interface PetCardData {
@@ -56,6 +71,8 @@ export interface PetCardData {
   listedAt: string;
   photo: { url: string; blurDataURL: string | null } | null;
   photoAlt: string;
+  lat: number | null;
+  lon: number | null;
 }
 
 export interface SearchResponse {
@@ -90,6 +107,7 @@ export function parseSearchParams(
     coat: arr(params.coat),
     goodWith: arr(params.goodWith),
     includeUnknownCompat: one(params.includeUnknownCompat),
+    bbox: one(params.bbox),
     sort: one(params.sort),
     cursor: one(params.cursor),
     limit: one(params.limit),
