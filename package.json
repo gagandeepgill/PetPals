@@ -11,6 +11,8 @@
     "migrate": "tsx src/scripts/migrate.ts",
     "ingest": "tsx src/ingestion/run.ts",
     "dedup": "tsx src/dedup/run.ts",
+    "worker": "tsx src/worker/index.ts",
+    "redrive": "tsx src/scripts/redrive.ts",
     "takedown": "tsx src/scripts/takedown.ts"
   },
   "dependencies": {
@@ -19,6 +21,8 @@
     "@emotion/styled": "^11.14.0",
     "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-virtual": "^3.14.10",
+    "bullmq": "^6.3.1",
+    "ioredis": "^6.0.0",
     "maplibre-gl": "^5.24.0",
     "next": "^15.5.0",
     "nuqs": "^2.4.3",
