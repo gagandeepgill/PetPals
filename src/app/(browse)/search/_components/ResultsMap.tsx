@@ -86,7 +86,6 @@ export default function ResultsMap() {
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     placeholderData: keepPreviousData,
-    maxPages: 10,
   });
 
   const geojson = useMemo(() => {
