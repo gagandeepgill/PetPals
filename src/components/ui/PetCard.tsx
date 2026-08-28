@@ -4,6 +4,7 @@ import styled from "@emotion/styled";
 import Image from "next/image";
 import Link from "next/link";
 import type { PetCardData } from "@/lib/domain/search";
+import { FavoriteToggle } from "./FavoriteToggle";
 
 /* Borderless "quiet surface" card: the card IS photo + text stack. Separation
    comes from whitespace, not chrome. Hover = photo zoom, never lift. */
@@ -140,6 +141,7 @@ export function PetCard({ pet, priority = false }: { pet: PetCardData; priority?
         {pet.distanceMi !== null && pet.distanceMi <= 5 ? (
           <PhotoChip>{pet.distanceMi} mi away</PhotoChip>
         ) : null}
+        <FavoriteToggle petId={pet.id} petName={pet.name} />
       </Frame>
       <Body>
         <Name>{pet.name}</Name>

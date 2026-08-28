@@ -117,7 +117,9 @@ export function FilterBar() {
       sort: parseAsStringLiteral(SORT_OPTIONS).withDefault("freshness"),
       cursor: parseAsString,
     },
-    { shallow: false, clearOnDefault: true, throttleMs: 300 },
+    // shallow: filter changes refetch through the client query cache; the RSC
+    // page only re-renders on hard navigation.
+    { shallow: true, clearOnDefault: true, throttleMs: 300 },
   );
 
   const toggleAge = (age: (typeof AGE_OPTIONS)[number]) => {

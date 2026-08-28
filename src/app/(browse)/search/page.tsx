@@ -1,7 +1,9 @@
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import type { Metadata } from "next";
 import { Container, PageTitle } from "@/components/ui/primitives";
 import { parseSearchParams } from "@/lib/domain/search";
 import { searchPets } from "@/lib/pets";
+import { petKeys } from "@/lib/query-keys";
 import { FilterBar } from "./_components/FilterBar";
 import { ResultsGrid } from "./_components/ResultsGrid";
 
@@ -14,18 +16,15 @@ interface Props {
 export default async function SearchPage({ searchParams }: Props) {
   const params = await searchParams;
   const filter = parseSearchParams(params);
-  const response = await searchPets(filter);
 
-  let nextHref: string | null = null;
-  if (response.nextCursor) {
-    const next = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)) {
-      if (key === "cursor" || value === undefined) continue;
-      for (const v of Array.isArray(value) ? value : [value]) next.append(key, v);
-    }
-    next.set("cursor", response.nextCursor);
-    nextHref = `/search?${next.toString()}`;
-  }
+  // Page 1 is server-fetched (crawlable HTML) and handed to the client cache
+  // via hydration — zero double-fetch; refinement is client-side from there.
+  const queryClient = new QueryClient();
+  await queryClient.prefetchInfiniteQuery({
+    queryKey: petKeys.search(filter),
+    queryFn: () => searchPets(filter),
+    initialPageParam: null as string | null,
+  });
 
   return (
     <Container>
@@ -33,7 +32,9 @@ export default async function SearchPage({ searchParams }: Props) {
         <PageTitle>Find your pet</PageTitle>
       </div>
       <FilterBar />
-      <ResultsGrid response={response} nextHref={nextHref} />
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <ResultsGrid />
+      </HydrationBoundary>
     </Container>
   );
 }
