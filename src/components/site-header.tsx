@@ -2,6 +2,7 @@
 
 import styled from "@emotion/styled";
 import Link from "next/link";
+import { useFavorites } from "@/lib/favorites";
 
 const Bar = styled.header`
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
@@ -40,6 +41,7 @@ const Nav = styled.nav`
 `;
 
 export function SiteHeader() {
+  const { count } = useFavorites();
   return (
     <Bar>
       <Inner>
@@ -48,6 +50,7 @@ export function SiteHeader() {
           <Link href="/search">Search</Link>
           <Link href="/search?species=dog">Dogs</Link>
           <Link href="/search?species=cat">Cats</Link>
+          <Link href="/favorites">Saved{count > 0 ? ` (${count})` : ""}</Link>
         </Nav>
       </Inner>
     </Bar>
