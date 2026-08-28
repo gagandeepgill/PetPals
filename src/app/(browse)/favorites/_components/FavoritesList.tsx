@@ -82,6 +82,10 @@ export function FavoritesList() {
       {favoriteIds.map((id, i) => {
         const result = results[i];
         if (!result || result.isPending) return <GoneNote key={id}>Checking on them…</GoneNote>;
+        if (result.isError) {
+          // Transient failure is not "adopted" — never celebrate a network error.
+          return <GoneNote key={id}>Couldn&apos;t check on this one — try again in a moment.</GoneNote>;
+        }
         const pet = result.data;
         if (!pet || pet.status === "removed" || pet.status === "adopted") {
           return (

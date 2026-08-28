@@ -11,6 +11,7 @@ import type { AdapterCtx, RawListing, SourceAdapter } from "./types";
  */
 
 const MAX_PHOTOS_PER_PET = 6;
+const PHOTO_CONCURRENCY = 4;
 const photoStore = new LocalPhotoStore();
 
 export interface RunMetrics {
@@ -202,38 +203,60 @@ async function upsertPet(listing: RawListing, listingId: string, orgId: string):
   ]);
 
   const rehost = isLicensedSource(listing.sourceId);
-  for (const [index, originalUrl] of n.photos.slice(0, MAX_PHOTOS_PER_PET).entries()) {
+  const urls = n.photos.slice(0, MAX_PHOTOS_PER_PET);
+  // Fetch/process uncached photos with bounded concurrency; inserts stay
+  // ordered and sequential (they're cheap — the network work is the cost).
+  const rows = await mapWithConcurrency(urls, PHOTO_CONCURRENCY, async (originalUrl) => {
     const cached = processedCache.get(originalUrl);
-    let row: { url: string; phash: string; blur: string | null; width: number | null; height: number | null };
     if (cached && cached.phash !== "") {
-      row = {
+      return {
+        originalUrl,
         url: cached.url,
         phash: cached.phash,
         blur: cached.blur_data_url,
         width: cached.width,
         height: cached.height,
       };
-    } else {
-      const processed = await processPhoto(originalUrl, { rehost, store: photoStore });
-      row = processed
-        ? {
-            url: processed.url,
-            phash: processed.phash,
-            blur: processed.blurDataURL,
-            width: processed.width,
-            height: processed.height,
-          }
-        : { url: originalUrl, phash: "", blur: null, width: null, height: null };
     }
+    const processed = await processPhoto(originalUrl, { rehost, store: photoStore });
+    return processed
+      ? {
+          originalUrl,
+          url: processed.url,
+          phash: processed.phash,
+          blur: processed.blurDataURL,
+          width: processed.width,
+          height: processed.height,
+        }
+      : { originalUrl, url: originalUrl, phash: "", blur: null, width: null, height: null };
+  });
+  for (const [index, row] of rows.entries()) {
     await pool.query(
       `INSERT INTO pet_photos
          (pet_id, source_listing_id, url, original_url, phash, blur_data_url,
           width, height, is_primary, sort_order)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [petId, listingId, row.url, originalUrl, row.phash, row.blur, row.width, row.height, index === 0, index],
+      [petId, listingId, row.url, row.originalUrl, row.phash, row.blur, row.width, row.height, index === 0, index],
     );
   }
   return petId;
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await fn(items[index]!);
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 async function suppressUnseen(sourceId: string, runStart: Date): Promise<number> {

@@ -50,6 +50,15 @@ async function main() {
       { name: "sync", data: { sourceId: adapter.sourceId }, opts: defaultJobOptions },
     );
   }
+  // Reconcile: a scheduler whose adapter left the registry would otherwise
+  // fire unknown-source jobs into retries and the DLQ forever.
+  const known = new Set(ADAPTERS.map((a) => `sync:${a.sourceId}`));
+  for (const scheduler of await ingestQueue.getJobSchedulers()) {
+    if (scheduler.key && scheduler.key.startsWith("sync:") && !known.has(scheduler.key)) {
+      await ingestQueue.removeJobScheduler(scheduler.key);
+      console.warn(`[worker] removed stale scheduler ${scheduler.key}`);
+    }
+  }
   await maintenanceQueue.upsertJobScheduler(
     "alerts",
     { every: 3_600_000 },

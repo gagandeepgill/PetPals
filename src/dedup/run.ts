@@ -47,9 +47,14 @@ async function exactPass(): Promise<number> {
   );
 
   let merged = 0;
+  const gone = new Set<string>();
   for (const row of rows) {
+    // Chained pairs (A=B, B=C) reference pets a prior merge deleted — skip
+    // rather than writing a merge_event for a nonexistent projection.
+    if (gone.has(row.pet_a) || gone.has(row.pet_b)) continue;
     const [winner, loser] = await pickWinner(pool, row.pet_a, row.pet_b);
     await mergePets(pool, winner, loser, "exact_org_animal_id");
+    gone.add(loser);
     merged++;
   }
   return merged;
@@ -107,6 +112,7 @@ async function scoredPass(): Promise<{ merged: number; queued: number; scored: n
          SELECT 1 FROM match_candidates m
          WHERE m.pet_a = least(pa.id, pb.id) AND m.pet_b = greatest(pa.id, pb.id)
            AND m.status IN ('pending','rejected'))
+     ORDER BY greatest(pa.updated_at, pb.updated_at) DESC
      LIMIT $2`,
     [BLOCK_RADIUS_M, MAX_PAIRS_PER_RUN],
   );
