@@ -20,8 +20,8 @@ export default async function HomePage() {
           <ButtonLink href="/search?species=rabbit" variant="secondary">
             🐰 Rabbits
           </ButtonLink>
-          <ButtonLink href="/search" variant="ghost">
-            Not sure yet? Just browse
+          <ButtonLink href="/quiz" variant="ghost">
+            Not sure? Take the two-minute quiz
           </ButtonLink>
         </div>
       </section>

@@ -2,8 +2,10 @@
 
 import styled from "@emotion/styled";
 import Image from "next/image";
+import Link from "next/link";
 import type { Pet, TriState } from "@/lib/domain/pet";
-import { ButtonAnchor } from "@/components/ui/primitives";
+import { Badge, ButtonAnchor } from "@/components/ui/primitives";
+import { fitNotes, useQuizProfile } from "@/lib/quiz";
 
 const Hero = styled.div<{ adopted?: boolean }>`
   position: relative;
@@ -144,6 +146,46 @@ const PendingBanner = styled.div`
   font-weight: ${({ theme }) => theme.typography.weight.medium};
 `;
 
+const FitSection = styled.div`
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radii.card};
+  background: ${({ theme }) => theme.colors.surfaceRaised};
+  padding: ${({ theme }) => theme.space(4)};
+  margin-bottom: ${({ theme }) => theme.space(4)};
+  h2 {
+    font-family: ${({ theme }) => theme.typography.fontDisplay};
+    font-size: ${({ theme }) => theme.typography.size.md};
+    font-weight: ${({ theme }) => theme.typography.weight.display};
+    margin: 0 0 ${({ theme }) => theme.space(3)};
+    color: ${({ theme }) => theme.colors.textPrimary};
+  }
+  a {
+    color: ${({ theme }) => theme.colors.trust};
+    font-size: ${({ theme }) => theme.typography.size.xs};
+  }
+`;
+
+/** Quiz-driven fit notes: labeled qualitative badges, never a percentage. */
+function MatchNotes({ pet }: { pet: Pet }) {
+  const { completed, answers } = useQuizProfile();
+  if (!completed) return null;
+  const notes = fitNotes(answers, pet);
+  if (notes.length === 0) return null;
+  return (
+    <FitSection>
+      <h2>For your home</h2>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+        {notes.map((note) => (
+          <Badge key={note.text} tone={note.tone === "good" ? "success" : "warning"}>
+            {note.tone === "good" ? "✓" : "?"} {note.text}
+          </Badge>
+        ))}
+      </div>
+      <Link href="/quiz">Answers changed? Retake the quiz</Link>
+    </FitSection>
+  );
+}
+
 function compatSlot(label: string, value: TriState) {
   const mark = value === true ? "✓" : value === false ? "–" : "?";
   const text =
@@ -212,6 +254,8 @@ export function PetDetail({ pet, verifiedAgo }: { pet: Pet; verifiedAgo: string 
         {compatSlot("Cats", pet.compat.cats)}
         {compatSlot("House-trained", pet.houseTrained)}
       </CompatRow>
+
+      <MatchNotes pet={pet} />
 
       <OrgCard>
         <OrgName>{pet.organizationName}</OrgName>

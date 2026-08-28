@@ -1,6 +1,7 @@
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import type { Metadata } from "next";
-import { Container, PageTitle } from "@/components/ui/primitives";
+import Link from "next/link";
+import { Container, Muted, PageTitle } from "@/components/ui/primitives";
 import { parseSearchParams } from "@/lib/domain/search";
 import { searchPets } from "@/lib/pets";
 import { petKeys } from "@/lib/query-keys";
@@ -31,6 +32,12 @@ export default async function SearchPage({ searchParams }: Props) {
     <Container>
       <div style={{ padding: "32px 0 0" }}>
         <PageTitle>Find your pet</PageTitle>
+        {params.from === "quiz" ? (
+          <Muted>
+            Filtered from your quiz answers — tweak anything below, or{" "}
+            <Link href="/quiz">retake the quiz</Link>.
+          </Muted>
+        ) : null}
       </div>
       <FilterBar />
       <HydrationBoundary state={dehydrate(queryClient)}>
