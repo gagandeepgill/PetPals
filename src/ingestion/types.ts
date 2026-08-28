@@ -58,11 +58,15 @@ export interface FetchWindow {
 export interface AdapterCtx {
   secrets: (key: string) => string;
   log: (message: string) => void;
+  /** Report a payload that failed schema validation; kept whole for repair. */
+  quarantine?: (raw: unknown, reason: string) => Promise<void>;
 }
 
 export interface SourceAdapter {
   readonly sourceId: string;
   readonly kind: "api" | "widget" | "scrape" | "push";
+  /** How often the scheduler runs a full sync of this source. */
+  readonly schedule: { intervalMs: number };
   readonly politeness: { maxConcurrent: number; minDelayMs: number };
 
   healthcheck(ctx: AdapterCtx): Promise<{ ok: boolean; detail?: string }>;

@@ -128,6 +128,9 @@ function mapAnimal(
 export const rescueGroupsAdapter: SourceAdapter = {
   sourceId: "rescuegroups",
   kind: "api",
+  // Terms require refresh at least weekly, daily recommended; 6h keeps
+  // ghost-listing exposure low with four full syncs a day.
+  schedule: { intervalMs: 6 * 3_600_000 },
   politeness: { maxConcurrent: 1, minDelayMs: 1000 },
 
   async healthcheck(ctx: AdapterCtx) {
@@ -167,8 +170,12 @@ export const rescueGroupsAdapter: SourceAdapter = {
 
       for (const animal of body.data ?? []) {
         const listing = mapAnimal(animal, included);
-        if (listing) yield listing;
-        else skipped++;
+        if (listing) {
+          yield listing;
+        } else {
+          skipped++;
+          await ctx.quarantine?.(animal, "failed RawListing schema validation");
+        }
       }
 
       totalPages = body.meta?.pages ?? page;
