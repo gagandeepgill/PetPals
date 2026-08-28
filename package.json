@@ -9,7 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "migrate": "tsx src/scripts/migrate.ts",
-    "ingest": "tsx src/ingestion/run.ts"
+    "ingest": "tsx src/ingestion/run.ts",
+    "takedown": "tsx src/scripts/takedown.ts"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -23,6 +24,8 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-map-gl": "^8.1.2",
+    "sharp": "^0.35.4",
+    "sharp-phash": "^2.2.0",
     "zod": "^3.24.1",
     "zustand": "^5.0.15"
   },

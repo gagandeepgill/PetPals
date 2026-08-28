@@ -2,7 +2,11 @@ import { createHash } from "node:crypto";
 import { getPool } from "../lib/db";
 import { rescueGroupsAdapter } from "./adapters/rescuegroups";
 import { NORMALIZER_VERSION, normalizeListing } from "./normalize";
+import { isLicensedSource, LocalPhotoStore, processPhoto } from "./photos";
 import type { AdapterCtx, RawListing, SourceAdapter } from "./types";
+
+const MAX_PHOTOS_PER_PET = 6;
+const photoStore = new LocalPhotoStore();
 
 /**
  * M0 ingestion runner: one full sync, invoked by `npm run ingest` (cron/BullMQ
@@ -166,15 +170,57 @@ async function upsertPet(listing: RawListing, listingId: string, orgId: string):
     );
   }
 
+  // Reuse already-processed images: a description edit must not refetch photos.
+  const { rows: existingPhotos } = await pool.query<{
+    original_url: string;
+    url: string;
+    phash: string;
+    blur_data_url: string | null;
+    width: number | null;
+    height: number | null;
+  }>(
+    `SELECT original_url, url, phash, blur_data_url, width, height
+     FROM pet_photos WHERE pet_id = $1 AND source_listing_id = $2`,
+    [petId, listingId],
+  );
+  const processedCache = new Map(existingPhotos.map((p) => [p.original_url, p]));
+
   await pool.query("DELETE FROM pet_photos WHERE pet_id = $1 AND source_listing_id = $2", [
     petId,
     listingId,
   ]);
-  for (const [index, url] of n.photos.entries()) {
+
+  const rehost = isLicensedSource(listing.sourceId);
+  for (const [index, originalUrl] of n.photos.slice(0, MAX_PHOTOS_PER_PET).entries()) {
+    const cached = processedCache.get(originalUrl);
+    let row: { url: string; phash: string; blur: string | null; width: number | null; height: number | null };
+    if (cached && cached.phash !== "") {
+      row = {
+        url: cached.url,
+        phash: cached.phash,
+        blur: cached.blur_data_url,
+        width: cached.width,
+        height: cached.height,
+      };
+    } else {
+      const processed = await processPhoto(originalUrl, { rehost, store: photoStore });
+      row = processed
+        ? {
+            url: processed.url,
+            phash: processed.phash,
+            blur: processed.blurDataURL,
+            width: processed.width,
+            height: processed.height,
+          }
+        : // Unfetchable image: keep the listing photo displayable, mark unprocessed.
+          { url: originalUrl, phash: "", blur: null, width: null, height: null };
+    }
     await pool.query(
-      `INSERT INTO pet_photos (pet_id, source_listing_id, url, original_url, is_primary, sort_order)
-       VALUES ($1, $2, $3, $3, $4, $5)`,
-      [petId, listingId, url, index === 0, index],
+      `INSERT INTO pet_photos
+         (pet_id, source_listing_id, url, original_url, phash, blur_data_url,
+          width, height, is_primary, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [petId, listingId, row.url, originalUrl, row.phash, row.blur, row.width, row.height, index === 0, index],
     );
   }
   return petId;
