@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { getPool } from "../lib/db";
+import { splitSourceId } from "./adapters";
 import { NORMALIZER_VERSION, normalizeListing } from "./normalize";
 import { isLicensedSource, LocalPhotoStore, processPhoto } from "./photos";
 import type { AdapterCtx, RawListing, SourceAdapter } from "./types";
@@ -83,10 +84,11 @@ async function upsertListing(
   hash: string,
 ): Promise<{ listingId: string; changed: boolean }> {
   const pool = getPool();
+  const { source, siteId } = splitSourceId(listing.sourceId);
   const existing = await pool.query<{ id: string; content_hash: string }>(
     `SELECT id, content_hash FROM source_listings
      WHERE source = $1 AND source_site_id IS NOT DISTINCT FROM $2 AND external_id = $3`,
-    [listing.sourceId, null, listing.externalId],
+    [source, siteId, listing.externalId],
   );
   const found = existing.rows[0];
 
@@ -112,10 +114,10 @@ async function upsertListing(
     `INSERT INTO source_listings
        (source, source_site_id, external_id, external_org_id, org_internal_animal_id,
         url, raw_payload, content_hash, status, normalizer_version)
-     VALUES ($1, NULL, $2, $3, $4, $5, $6, $7, $8, $9)
+     VALUES ($1, $10, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING id`,
     [
-      listing.sourceId,
+      source,
       listing.externalId,
       listing.organization.externalOrgId,
       listing.orgInternalAnimalId ?? null,
@@ -124,6 +126,7 @@ async function upsertListing(
       hash,
       listing.status,
       NORMALIZER_VERSION,
+      siteId,
     ],
   );
   return { listingId: inserted.rows[0]!.id, changed: true };
@@ -261,13 +264,15 @@ async function mapWithConcurrency<T, R>(
 
 async function suppressUnseen(sourceId: string, runStart: Date): Promise<number> {
   const pool = getPool();
+  const { source, siteId } = splitSourceId(sourceId);
   const { rows } = await pool.query<{ pet_id: string }>(
     `UPDATE source_listings sl SET status = 'removed', removed_at = now()
      FROM pet_source_links l
-     WHERE l.source_listing_id = sl.id AND sl.source = $1 AND sl.last_seen_at < $2
-       AND sl.status <> 'removed'
+     WHERE l.source_listing_id = sl.id AND sl.source = $1
+       AND sl.source_site_id IS NOT DISTINCT FROM $3
+       AND sl.last_seen_at < $2 AND sl.status <> 'removed'
      RETURNING l.pet_id`,
-    [sourceId, runStart],
+    [source, runStart, siteId],
   );
   if (rows.length) {
     await pool.query(

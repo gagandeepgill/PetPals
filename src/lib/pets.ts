@@ -6,9 +6,13 @@ import type { PetCardData, SearchFilter, SearchResponse } from "./domain/search"
 import { demoProvider } from "./search/demo-provider";
 import { pgProvider } from "./search/pg-provider";
 import type { SearchProvider } from "./search/provider";
+import { hasSnapshot, snapshotProvider } from "./search/snapshot-provider";
 
 function provider(): SearchProvider {
-  return hasDatabase() ? pgProvider : demoProvider;
+  if (hasDatabase()) return pgProvider;
+  // Real listings from `npm run snapshot` beat the built-in demo seeds.
+  if (hasSnapshot()) return snapshotProvider;
+  return demoProvider;
 }
 
 export function searchPets(filter: SearchFilter): Promise<SearchResponse> {
