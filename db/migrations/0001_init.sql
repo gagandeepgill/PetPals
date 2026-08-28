@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS source_listings (
   first_seen_at           timestamptz NOT NULL DEFAULT now(),
   last_seen_at            timestamptz NOT NULL DEFAULT now(),
   removed_at              timestamptz,
-  UNIQUE (source, source_site_id, external_id)
+  UNIQUE NULLS NOT DISTINCT (source, source_site_id, external_id)
 );
 CREATE INDEX IF NOT EXISTS source_listings_org_animal_ix
   ON source_listings (external_org_id, org_internal_animal_id);
