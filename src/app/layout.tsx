@@ -8,6 +8,7 @@ const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-fraunces",
   display: "swap",
+  axes: ["SOFT", "WONK", "opsz"],
 });
 
 const nunito = Nunito_Sans({

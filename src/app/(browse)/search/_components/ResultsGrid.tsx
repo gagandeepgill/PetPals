@@ -33,8 +33,8 @@ export function ResultsGrid({
   if (response.results.length === 0) {
     return (
       <Empty>
-        <p>No pets match these filters yet.</p>
-        <p>Try widening the radius or removing a filter — new pets arrive daily.</p>
+        <p>Nobody matches that yet — but new pets arrive every day.</p>
+        <p>Try widening the radius or removing a filter.</p>
       </Empty>
     );
   }

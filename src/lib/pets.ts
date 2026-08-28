@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { hasDatabase } from "./db";
 import type { Pet } from "./domain/pet";
+import { SearchFilterSchema } from "./domain/search";
 import type { PetCardData, SearchFilter, SearchResponse } from "./domain/search";
 import { demoProvider } from "./search/demo-provider";
 import { pgProvider } from "./search/pg-provider";
@@ -31,4 +32,24 @@ export function getFeaturedPets(limit = 8): Promise<PetCardData[]> {
     tags: ["pets", "pets:featured"],
     revalidate: 3600,
   })();
+}
+
+export interface HeroStats {
+  total: number;
+  faces: PetCardData[];
+}
+
+/**
+ * Live-data hero: a real number and real faces in first paint. ~15min staleness
+ * is fine — the number needs to be real, not real-time.
+ */
+export function getHeroStats(): Promise<HeroStats> {
+  return unstable_cache(
+    async () => {
+      const response = await provider().searchPets(SearchFilterSchema.parse({ limit: 5 }));
+      return { total: response.total, faces: response.results.slice(0, 4) };
+    },
+    ["hero-stats"],
+    { tags: ["pets"], revalidate: 900 },
+  )();
 }

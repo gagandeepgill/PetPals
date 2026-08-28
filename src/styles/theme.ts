@@ -19,13 +19,16 @@ export const palette = {
   sage: { 500: "#6A8E7F", 600: "#54786A" },
   honey: { 500: "#E9B44C", 700: "#B5822A" },
   clay: { 500: "#C4443C", 600: "#A33630" },
+  // Trust secondary (verified shelters, adoption-of-record affordances) — see DESIGN.md
+  spruce: { 300: "#8FB3A3", 500: "#3E5C50" },
+  // Dark mode is espresso, not charcoal: warmth survives inversion.
   night: {
-    bg: "#1C1917",
-    surface: "#26221F",
-    raised: "#312C28",
-    text: "#F2EDE7",
-    textMuted: "#B8AFA4",
-    border: "#3D3732",
+    bg: "#221B16",
+    surface: "#2A221C",
+    raised: "#332A22",
+    text: "#F2EAE0",
+    textMuted: "#B8A99A",
+    border: "#3A3129",
   },
 } as const;
 
@@ -36,6 +39,8 @@ export const theme = {
     surface: v("surface"),
     surfaceRaised: v("surface-raised"),
     surfaceSunken: v("surface-sunken"),
+    surfaceOverlay: v("surface-overlay"),
+    trust: v("trust"),
     textPrimary: v("text-primary"),
     textSecondary: v("text-secondary"),
     textInverse: v("text-inverse"),
@@ -52,6 +57,8 @@ export const theme = {
   },
   typography: {
     fontDisplay: `var(--font-fraunces), Georgia, serif`,
+    // SOFT high / WONK off: warm, without the wonky-swash cliché — see DESIGN.md
+    displayVariation: `'SOFT' 100, 'WONK' 0`,
     fontBody: `var(--font-nunito), system-ui, sans-serif`,
     size: {
       xs: "0.75rem",
@@ -83,7 +90,8 @@ export const theme = {
     easing: {
       standard: "cubic-bezier(0.2, 0, 0, 1)",
       enter: "cubic-bezier(0, 0, 0.2, 1)",
-      spring: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      spring: "cubic-bezier(0.34, 1.56, 0.64, 1)", // affirmations only (favorite, settle)
+      sheet: "cubic-bezier(0.32, 0.72, 0, 1)",
     },
   },
 } as const;

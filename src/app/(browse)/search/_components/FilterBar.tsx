@@ -14,12 +14,47 @@ const SPECIES_OPTIONS = ["dog", "cat", "rabbit", "bird", "other"] as const;
 const AGE_OPTIONS = ["baby", "young", "adult", "senior"] as const;
 const SORT_OPTIONS = ["freshness", "distance"] as const;
 
+/* Chip rows scroll horizontally on small screens; a token-colored edge fade
+   (never a literal — dark mode must fade correctly) signals the overflow. */
 const Bar = styled.div`
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: ${({ theme }) => theme.space(2)};
-  padding: ${({ theme }) => `${theme.space(4)} 0`};
+  padding: ${({ theme }) => `${theme.space(3)} 0`};
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  > * {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+  ${({ theme }) => theme.mq.md} {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+`;
+
+const FadeEdge = styled.div`
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40px;
+    pointer-events: none;
+    background: linear-gradient(to right, transparent, ${({ theme }) => theme.colors.surface});
+  }
+  ${({ theme }) => theme.mq.md} {
+    &::after {
+      display: none;
+    }
+  }
 `;
 
 const Chip = styled.button<{ active?: boolean }>`
@@ -92,7 +127,7 @@ export function FilterBar() {
   };
 
   return (
-    <div role="group" aria-label="Filter pets">
+    <FadeEdge role="group" aria-label="Filter pets">
       <Bar>
         <Chip
           active={filters.species === null}
@@ -173,6 +208,6 @@ export function FilterBar() {
           </Select>
         </Field>
       </Bar>
-    </div>
+    </FadeEdge>
   );
 }

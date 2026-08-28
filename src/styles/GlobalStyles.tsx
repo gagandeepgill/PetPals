@@ -7,6 +7,8 @@ const lightVars = {
   "--pp-surface": palette.sand[50],
   "--pp-surface-raised": "#FFFFFF",
   "--pp-surface-sunken": palette.sand[100],
+  "--pp-surface-overlay": "#FFFFFF",
+  "--pp-trust": palette.spruce[500],
   "--pp-text-primary": palette.ink[900],
   "--pp-text-secondary": palette.ink[700],
   "--pp-text-inverse": "#FFF9F5",
@@ -20,15 +22,17 @@ const lightVars = {
   "--pp-danger": palette.clay[500],
   "--pp-favorite": "#E25D6A",
   "--pp-overlay": "rgba(45,42,38,0.55)",
-  "--pp-shadow-sm": "0 1px 3px rgba(45,42,38,0.08)",
+  "--pp-shadow-sm": "0 1px 2px rgba(45,42,38,0.06), 0 1px 3px rgba(45,42,38,0.08)",
   "--pp-shadow-md": "0 4px 12px rgba(45,42,38,0.10)",
-  "--pp-shadow-lg": "0 12px 32px rgba(45,42,38,0.14)",
+  "--pp-shadow-lg": "0 8px 16px rgba(45,42,38,0.10), 0 20px 40px rgba(45,42,38,0.12)",
 } as const;
 
 const darkVars = {
   "--pp-surface": palette.night.bg,
   "--pp-surface-raised": palette.night.surface,
   "--pp-surface-sunken": palette.night.raised,
+  "--pp-surface-overlay": palette.night.raised,
+  "--pp-trust": palette.spruce[300],
   "--pp-text-primary": palette.night.text,
   "--pp-text-secondary": palette.night.textMuted,
   "--pp-text-inverse": palette.ink[900],
@@ -42,9 +46,11 @@ const darkVars = {
   "--pp-danger": "#E0776C",
   "--pp-favorite": "#F07A86",
   "--pp-overlay": "rgba(0,0,0,0.6)",
-  "--pp-shadow-sm": "0 1px 3px rgba(0,0,0,0.35)",
-  "--pp-shadow-md": "0 4px 12px rgba(0,0,0,0.4)",
-  "--pp-shadow-lg": "0 12px 32px rgba(0,0,0,0.5)",
+  // Dark elevation = lighter surface + visible border; shadows carry ~zero
+  // signal on espresso. Real shadow survives only on overlays (see DESIGN.md).
+  "--pp-shadow-sm": `0 0 0 1px ${palette.night.border}`,
+  "--pp-shadow-md": `0 0 0 1px ${palette.night.border}`,
+  "--pp-shadow-lg": `0 0 0 1px ${palette.night.border}, 0 16px 40px rgba(0,0,0,0.55)`,
 } as const;
 
 export function GlobalStyles() {
@@ -66,6 +72,7 @@ export function GlobalStyles() {
           lineHeight: 1.55,
         },
         "img, video": { maxWidth: "100%", height: "auto" },
+        "h1, h2, h3, h4": { fontVariationSettings: "'SOFT' 100, 'WONK' 0" },
         "button, input, select, textarea": { font: "inherit" },
         a: { color: "var(--pp-accent)" },
         ":focus-visible": {
