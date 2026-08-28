@@ -89,10 +89,14 @@ export function FavoriteToggle({ petId, petName }: { petId: string; petName: str
       aria-pressed={active}
       aria-label={active ? `Remove ${petName} from saved pets` : `Save ${petName}`}
       data-pop={popping}
-      onAnimationEnd={() => setPopping(false)}
       onClick={(e) => {
         e.preventDefault();
-        if (!active) setPopping(true);
+        if (!active) {
+          // Cleared on a timer, not onAnimationEnd: the pop ends at 350ms but
+          // the burst particles run until ~500ms and must not be cancelled.
+          setPopping(true);
+          window.setTimeout(() => setPopping(false), 600);
+        }
         toggle(petId);
       }}
     >

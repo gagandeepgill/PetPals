@@ -22,7 +22,8 @@ export default async function SearchPage({ searchParams }: Props) {
   const queryClient = new QueryClient();
   await queryClient.prefetchInfiniteQuery({
     queryKey: petKeys.search(filter),
-    queryFn: () => searchPets(filter),
+    // Strip any URL-carried cursor: the key is cursor-free, so page 1 must be too.
+    queryFn: () => searchPets({ ...filter, cursor: undefined }),
     initialPageParam: null as string | null,
   });
 
