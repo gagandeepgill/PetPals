@@ -157,14 +157,19 @@ export function mapAsmAnimal(
           ? "female"
           : "unknown",
     size: SIZE_MAP[(animal.SIZENAME ?? "").trim().toLowerCase()],
-    description: (animal.WEBSITEMEDIANOTES || animal.ANIMALCOMMENTS || "").trim() || undefined,
+    // Some orgs paste internal notes (medical, behavioral contracts) into
+    // these fields — suppression is a per-org registry flag.
+    description: org?.suppressDescriptions
+      ? undefined
+      : (animal.WEBSITEMEDIANOTES || animal.ANIMALCOMMENTS || "").trim() || undefined,
     photos: imageUrls(account, animal),
     status: animal.RESERVATIONDATE ? "pending" : "available",
     // The feed has no per-animal address; the org's published location stands
     // in for every animal it shelters.
-    location: org
-      ? { city: org.city, state: org.region, lat: org.lat, lon: org.lon }
-      : {},
+    location:
+      org && org.lat !== undefined && org.lon !== undefined
+        ? { city: org.city, state: org.region, lat: org.lat, lon: org.lon }
+        : {},
     organization: { externalOrgId: account, name: orgName },
     orgInternalAnimalId: animal.SHELTERCODE || undefined,
     attributes: {
