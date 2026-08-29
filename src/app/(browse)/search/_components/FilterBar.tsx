@@ -11,6 +11,7 @@ import {
 } from "nuqs";
 import { useState } from "react";
 import { RADII } from "@/lib/domain/search";
+import { formatRadius, isLikelyCanada } from "@/lib/units";
 
 const SPECIES_OPTIONS = ["dog", "cat", "rabbit", "bird", "other"] as const;
 const AGE_OPTIONS = ["baby", "young", "adult", "senior"] as const;
@@ -66,7 +67,8 @@ const Chip = styled.button<{ active?: boolean }>`
     ${({ theme, active }) => (active ? theme.colors.accent : theme.colors.border)};
   background: ${({ theme, active }) =>
     active ? theme.colors.accentSubtle : theme.colors.surfaceRaised};
-  color: ${({ theme, active }) => (active ? theme.colors.accent : theme.colors.textPrimary)};
+  /* accentText, not accent: #E07A5F on accentSubtle is 2.45:1 (issue #22). */
+  color: ${({ theme, active }) => (active ? theme.colors.accentText : theme.colors.textPrimary)};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
   font-size: ${({ theme }) => theme.typography.size.sm};
   cursor: pointer;
@@ -130,6 +132,7 @@ export function FilterBar() {
   );
 
   const hasOrigin = filters.lat !== null && filters.lon !== null;
+  const metric = hasOrigin && isLikelyCanada(filters.lat!, filters.lon!);
 
   const requestNearMe = () => {
     if (hasOrigin) {
@@ -252,7 +255,7 @@ export function FilterBar() {
           >
             {RADII.map((r) => (
               <option key={r} value={r}>
-                {r} mi
+                {formatRadius(r, metric)}
               </option>
             ))}
           </Select>

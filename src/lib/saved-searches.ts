@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { RADII, type SearchFilter } from "./domain/search";
 import { filterToParams } from "./query-keys";
+import { formatRadius, isLikelyCanada } from "./units";
 
 /**
  * Saved searches — the retention core (DESIGN.md): pets move fast, so "tell me
@@ -53,7 +54,13 @@ export function describeFilters(filter: SearchFilter): string {
   if (filter.goodWith?.length) parts.push(`good with ${filter.goodWith.join(" & ")}`);
   if (filter.zip || (filter.lat !== undefined && filter.lon !== undefined)) {
     const radius = (RADII as readonly number[]).includes(filter.radius) ? filter.radius : 50;
-    parts.push(filter.zip ? `within ${radius} mi of ${filter.zip}` : `within ${radius} mi of you`);
+    const metric =
+      filter.lat !== undefined && filter.lon !== undefined && isLikelyCanada(filter.lat, filter.lon);
+    parts.push(
+      filter.zip
+        ? `within ${radius} mi of ${filter.zip}`
+        : `within ${formatRadius(radius, metric)} of you`,
+    );
   }
   if (filter.bbox) parts.push("in a map area");
   return parts.join(" · ");
