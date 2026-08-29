@@ -7,6 +7,7 @@ import {
   type SearchFilter,
   type SearchResponse,
 } from "../domain/search";
+import { filterOrigin, haversineMiles } from "./geo";
 import type { SearchProvider } from "./provider";
 
 /**
@@ -46,6 +47,11 @@ export function hasSnapshot(): boolean {
   return loadSnapshot() !== null && (loadSnapshot()?.pets.length ?? 0) > 0;
 }
 
+/** (0,0) is the "no coordinates" sentinel for snapshot pets. */
+function hasCoords(pet: Pet): boolean {
+  return !(pet.location.lat === 0 && pet.location.lon === 0);
+}
+
 function matches(entry: SnapshotPet, filter: SearchFilter): boolean {
   const { pet } = entry;
   if (pet.status !== "available" && pet.status !== "pending") return false;
@@ -69,7 +75,7 @@ function matches(entry: SnapshotPet, filter: SearchFilter): boolean {
   if (box) {
     const { lat, lon } = pet.location;
     if (
-      (lat === 0 && lon === 0) ||
+      !hasCoords(pet) ||
       lon < box.minLon ||
       lon > box.maxLon ||
       lat < box.minLat ||
@@ -78,15 +84,46 @@ function matches(entry: SnapshotPet, filter: SearchFilter): boolean {
       return false;
     }
   }
+  const origin = filterOrigin(filter);
+  if (origin) {
+    if (!hasCoords(pet)) return false;
+    const miles = haversineMiles(origin.lat, origin.lon, pet.location.lat, pet.location.lon);
+    if (miles > filter.radius) return false;
+  }
   return true;
 }
 
 export const snapshotProvider: SearchProvider = {
   async searchPets(filter: SearchFilter): Promise<SearchResponse> {
     const snapshot = loadSnapshot();
+    const origin = filterOrigin(filter);
+    const withDistance = (entry: SnapshotPet): SnapshotPet =>
+      origin && hasCoords(entry.pet)
+        ? {
+            ...entry,
+            card: {
+              ...entry.card,
+              distanceMi:
+                Math.round(
+                  haversineMiles(
+                    origin.lat,
+                    origin.lon,
+                    entry.pet.location.lat,
+                    entry.pet.location.lon,
+                  ) * 10,
+                ) / 10,
+            },
+          }
+        : entry;
+
     const filtered = (snapshot?.pets ?? [])
       .filter((p) => matches(p, filter))
-      .sort((a, b) => b.card.listedAt.localeCompare(a.card.listedAt));
+      .map(withDistance)
+      .sort((a, b) =>
+        filter.sort === "distance" && origin
+          ? (a.card.distanceMi ?? Infinity) - (b.card.distanceMi ?? Infinity)
+          : b.card.listedAt.localeCompare(a.card.listedAt),
+      );
 
     const offset = filter.cursor ? Number.parseInt(filter.cursor, 10) || 0 : 0;
     const page = filtered.slice(offset, offset + filter.limit);

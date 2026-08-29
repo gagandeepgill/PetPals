@@ -126,6 +126,15 @@ async function zipCentroid(zip: string): Promise<string | null> {
   return rows[0]?.loc ?? null;
 }
 
+/** Search origin as a geography-castable value: browser geolocation ("Near
+ *  me") wins over zip — it's the more precise, user-chosen signal. */
+async function searchCentroid(filter: SearchFilter): Promise<string | null> {
+  if (filter.lat !== undefined && filter.lon !== undefined) {
+    return `SRID=4326;POINT(${filter.lon} ${filter.lat})`;
+  }
+  return filter.zip ? zipCentroid(filter.zip) : null;
+}
+
 export const pgProvider: SearchProvider = {
   async searchPets(filter: SearchFilter): Promise<SearchResponse> {
     const pool = getPool();
@@ -133,7 +142,7 @@ export const pgProvider: SearchProvider = {
     applyFilters(w, filter);
 
     let distanceExpr = "NULL";
-    const centroid = filter.zip ? await zipCentroid(filter.zip) : null;
+    const centroid = await searchCentroid(filter);
     if (centroid) {
       const c = w.next(centroid);
       distanceExpr = `ST_Distance(p.location, ${c}::geography) / ${METERS_PER_MILE}`;

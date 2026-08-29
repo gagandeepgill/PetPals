@@ -5,6 +5,7 @@ import {
   type SearchFilter,
   type SearchResponse,
 } from "../domain/search";
+import { filterOrigin, haversineMiles } from "./geo";
 import { ageLabel, photoAlt, type SearchProvider } from "./provider";
 
 /**
@@ -284,13 +285,22 @@ function matches(pet: DemoPet, filter: SearchFilter): boolean {
       return false;
     }
   }
+  const origin = filterOrigin(filter);
+  if (origin) {
+    if (haversineMiles(origin.lat, origin.lon, pet.lat, pet.lon) > filter.radius) return false;
+  }
   return true;
 }
 
 export const demoProvider: SearchProvider = {
   async searchPets(filter: SearchFilter): Promise<SearchResponse> {
+    const origin = filterOrigin(filter);
+    const distanceOf = (p: DemoPet) =>
+      origin ? haversineMiles(origin.lat, origin.lon, p.lat, p.lon) : null;
     const filtered = ALL_PETS.filter((p) => matches(p, filter)).sort((a, b) =>
-      b.listedAt.localeCompare(a.listedAt),
+      filter.sort === "distance" && origin
+        ? (distanceOf(a) ?? 0) - (distanceOf(b) ?? 0)
+        : b.listedAt.localeCompare(a.listedAt),
     );
 
     // Demo cursor: plain offset (opaque to callers, like the real one).
@@ -305,7 +315,10 @@ export const demoProvider: SearchProvider = {
       }, {});
 
     return {
-      results: page.map(toCard),
+      results: page.map((p) => {
+        const miles = distanceOf(p);
+        return miles === null ? toCard(p) : { ...toCard(p), distanceMi: Math.round(miles * 10) / 10 };
+      }),
       facets: { species: facet((p) => p.species), ageGroup: facet((p) => p.ageGroup) },
       nextCursor: nextOffset < filtered.length ? String(nextOffset) : null,
       total: filtered.length,
