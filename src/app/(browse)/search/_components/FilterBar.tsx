@@ -3,11 +3,13 @@
 import styled from "@emotion/styled";
 import {
   parseAsArrayOf,
+  parseAsFloat,
   parseAsNumberLiteral,
   parseAsString,
   parseAsStringLiteral,
   useQueryStates,
 } from "nuqs";
+import { useState } from "react";
 import { RADII } from "@/lib/domain/search";
 
 const SPECIES_OPTIONS = ["dog", "cat", "rabbit", "bird", "other"] as const;
@@ -109,11 +111,14 @@ const AGE_LABELS: Record<(typeof AGE_OPTIONS)[number], string> = {
  * would silently constrain the new search.
  */
 export function FilterBar() {
+  const [geoState, setGeoState] = useState<"idle" | "asking" | "denied">("idle");
   const [filters, setFilters] = useQueryStates(
     {
       species: parseAsStringLiteral(SPECIES_OPTIONS),
       ageGroup: parseAsArrayOf(parseAsStringLiteral(AGE_OPTIONS)),
       zip: parseAsString,
+      lat: parseAsFloat,
+      lon: parseAsFloat,
       radius: parseAsNumberLiteral(RADII).withDefault(50),
       sort: parseAsStringLiteral(SORT_OPTIONS).withDefault("freshness"),
       cursor: parseAsString,
@@ -123,6 +128,42 @@ export function FilterBar() {
     // page only re-renders on hard navigation.
     { shallow: true, clearOnDefault: true, throttleMs: 300 },
   );
+
+  const hasOrigin = filters.lat !== null && filters.lon !== null;
+
+  const requestNearMe = () => {
+    if (hasOrigin) {
+      // Toggle off — and distance sort is meaningless without an origin.
+      void setFilters({
+        lat: null,
+        lon: null,
+        cursor: null,
+        ...(filters.zip ? {} : { sort: "freshness" }),
+      });
+      return;
+    }
+    if (!("geolocation" in navigator)) {
+      setGeoState("denied");
+      return;
+    }
+    setGeoState("asking");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGeoState("idle");
+        // ~1km precision is plenty for a >=10mi radius, and keeps the exact
+        // position out of the (shareable) URL.
+        void setFilters({
+          lat: Math.round(pos.coords.latitude * 100) / 100,
+          lon: Math.round(pos.coords.longitude * 100) / 100,
+          sort: "distance",
+          cursor: null,
+          bbox: null,
+        });
+      },
+      () => setGeoState("denied"),
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
+    );
+  };
 
   const toggleAge = (age: (typeof AGE_OPTIONS)[number]) => {
     const current = filters.ageGroup ?? [];
@@ -150,6 +191,18 @@ export function FilterBar() {
             {s === "other" ? "Other" : `${s[0]?.toUpperCase()}${s.slice(1)}s`}
           </Chip>
         ))}
+        <Chip
+          active={hasOrigin}
+          aria-pressed={hasOrigin}
+          onClick={requestNearMe}
+          disabled={geoState === "asking"}
+          aria-label={hasOrigin ? "Clear near-me filter" : "Show pets near your location"}
+        >
+          {geoState === "asking" ? "Locating…" : hasOrigin ? "Near you ✕" : "📍 Near me"}
+        </Chip>
+        {geoState === "denied" ? (
+          <Field role="status">Location unavailable — try the map or a ZIP instead.</Field>
+        ) : null}
         {filters.bbox ? (
           <Chip
             active
@@ -216,8 +269,8 @@ export function FilterBar() {
             }
           >
             <option value="freshness">Newest</option>
-            <option value="distance" disabled={!filters.zip}>
-              Distance{filters.zip ? "" : " (enter ZIP)"}
+            <option value="distance" disabled={!filters.zip && !hasOrigin}>
+              Distance{filters.zip || hasOrigin ? "" : " (enter ZIP or use Near me)"}
             </option>
           </Select>
         </Field>

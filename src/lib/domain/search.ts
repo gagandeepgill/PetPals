@@ -18,6 +18,10 @@ export const SearchFilterSchema = z
       .string()
       .regex(/^\d{5}$/)
       .optional(),
+    /** Search origin from browser geolocation ("Near me") — never a street
+     *  address, just the coarse coordinates the user chose to share. */
+    lat: z.coerce.number().min(-90).max(90).optional(),
+    lon: z.coerce.number().min(-180).max(180).optional(),
     radius: z.coerce
       .number()
       .pipe(z.union([z.literal(10), z.literal(25), z.literal(50), z.literal(100)]))
@@ -37,8 +41,8 @@ export const SearchFilterSchema = z
     cursor: z.string().max(200).optional(),
     limit: z.coerce.number().int().min(1).max(50).default(24),
   })
-  .refine((q) => q.sort !== "distance" || q.zip, {
-    message: "distance sort requires zip",
+  .refine((q) => q.sort !== "distance" || q.zip || (q.lat !== undefined && q.lon !== undefined), {
+    message: "distance sort requires zip or lat/lon",
     path: ["sort"],
   });
 
@@ -101,6 +105,8 @@ export function parseSearchParams(
     size: arr(params.size),
     sex: one(params.sex),
     zip: one(params.zip),
+    lat: one(params.lat),
+    lon: one(params.lon),
     radius: one(params.radius),
     energy: arr(params.energy),
     houseTrained: one(params.houseTrained),

@@ -1,3 +1,4 @@
+import { type Asm3OrgInfo, defaultAsm3Accounts, KNOWN_ASM3_ORGS } from "../orgs";
 import type { AdapterCtx, FetchWindow, RawListing, SourceAdapter } from "../types";
 import { RawListingSchema } from "../types";
 
@@ -127,6 +128,7 @@ export function mapAsmAnimal(
   account: string,
   orgName: string,
   animal: AsmAnimal,
+  org?: Asm3OrgInfo,
 ): RawListing | null {
   const speciesName = (animal.SPECIESNAME ?? "").trim().toLowerCase();
   const breeds = animal.CROSSBREED
@@ -155,10 +157,19 @@ export function mapAsmAnimal(
           ? "female"
           : "unknown",
     size: SIZE_MAP[(animal.SIZENAME ?? "").trim().toLowerCase()],
-    description: (animal.WEBSITEMEDIANOTES || animal.ANIMALCOMMENTS || "").trim() || undefined,
+    // Some orgs paste internal notes (medical, behavioral contracts) into
+    // these fields — suppression is a per-org registry flag.
+    description: org?.suppressDescriptions
+      ? undefined
+      : (animal.WEBSITEMEDIANOTES || animal.ANIMALCOMMENTS || "").trim() || undefined,
     photos: imageUrls(account, animal),
     status: animal.RESERVATIONDATE ? "pending" : "available",
-    location: {},
+    // The feed has no per-animal address; the org's published location stands
+    // in for every animal it shelters.
+    location:
+      org && org.lat !== undefined && org.lon !== undefined
+        ? { city: org.city, state: org.region, lat: org.lat, lon: org.lon }
+        : {},
     organization: { externalOrgId: account, name: orgName },
     orgInternalAnimalId: animal.SHELTERCODE || undefined,
     attributes: {
@@ -177,7 +188,11 @@ export function mapAsmAnimal(
   return parsed.success ? parsed.data : null;
 }
 
-export function makeAsm3Adapter(account: string, orgName: string): SourceAdapter {
+export function makeAsm3Adapter(
+  account: string,
+  orgName: string,
+  org: Asm3OrgInfo | undefined = KNOWN_ASM3_ORGS[account],
+): SourceAdapter {
   return {
     sourceId: `asm3:${account}`,
     kind: "widget",
@@ -204,7 +219,7 @@ export function makeAsm3Adapter(account: string, orgName: string): SourceAdapter
       const animals = parseAdoptablesJs(body);
       let skipped = 0;
       for (const animal of animals) {
-        const listing = mapAsmAnimal(account, orgName, animal);
+        const listing = mapAsmAnimal(account, orgName, animal, org);
         if (listing) {
           yield listing;
         } else {
@@ -217,15 +232,17 @@ export function makeAsm3Adapter(account: string, orgName: string): SourceAdapter
   };
 }
 
-/** Parse ASM3_ACCOUNTS="acct[:Display Name],acct2[:Name2]". */
+/** Parse ASM3_ACCOUNTS="acct[:Display Name],acct2[:Name2]"; when unset, the
+ *  org registry's accounts sync by default (they need no secrets). */
 export function asm3AdaptersFromEnv(value: string | undefined): SourceAdapter[] {
-  if (!value) return [];
-  return value
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-    .map((entry) => {
-      const [account, ...nameParts] = entry.split(":");
-      return makeAsm3Adapter(account!.trim(), nameParts.join(":").trim() || `Shelter ${account!.trim()}`);
-    });
+  const entries = value
+    ? value.split(",").map((entry) => entry.trim()).filter(Boolean)
+    : defaultAsm3Accounts();
+  return entries.map((entry) => {
+    const [rawAccount, ...nameParts] = entry.split(":");
+    const account = rawAccount!.trim();
+    const name =
+      nameParts.join(":").trim() || KNOWN_ASM3_ORGS[account]?.name || `Shelter ${account}`;
+    return makeAsm3Adapter(account, name);
+  });
 }

@@ -5,7 +5,7 @@ import type { StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Map, {
   Layer,
   Source,
@@ -13,7 +13,7 @@ import Map, {
   type MapLayerMouseEvent,
   type MapRef,
 } from "react-map-gl/maplibre";
-import { parseSearchParams } from "@/lib/domain/search";
+import { parseBbox, parseSearchParams } from "@/lib/domain/search";
 import { filterToParams, petKeys } from "@/lib/query-keys";
 import { fetchSearchPage } from "@/lib/search-client";
 import { usePetHover } from "./hover-context";
@@ -65,7 +65,9 @@ const pinLayer: LayerProps = {
   },
 };
 
-const SACRAMENTO = { longitude: -121.49, latitude: 38.58, zoom: 9 };
+/* Pre-fit fallback only — the mount effect below aims the camera at the URL
+   bbox, the near-me origin, or the data itself as soon as it can. */
+const NORTH_AMERICA = { longitude: -96, latitude: 42, zoom: 3 };
 
 export default function ResultsMap() {
   const router = useRouter();
@@ -103,6 +105,42 @@ export default function ResultsMap() {
     };
   }, [query.data]);
 
+  /* One-time camera aim, priority: URL bbox (shared links restore their
+     viewport) > near-me origin > bounds of the loaded data. Never re-aims on
+     filter changes — the user owns the camera after first contact. */
+  const [mapReady, setMapReady] = useState(false);
+  const aimedRef = useRef(false);
+  const programmaticMove = useRef(false);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || aimedRef.current) return;
+    const box = parseBbox(filter.bbox);
+    if (box) {
+      programmaticMove.current = true;
+      map.fitBounds(
+        [[box.minLon, box.minLat], [box.maxLon, box.maxLat]],
+        { duration: 0 },
+      );
+      aimedRef.current = true;
+    } else if (filter.lat !== undefined && filter.lon !== undefined) {
+      programmaticMove.current = true;
+      map.jumpTo({ center: [filter.lon, filter.lat], zoom: 9 });
+      aimedRef.current = true;
+    } else if (geojson.features.length > 0) {
+      const lons = geojson.features.map((f) => f.geometry.coordinates[0]!);
+      const lats = geojson.features.map((f) => f.geometry.coordinates[1]!);
+      programmaticMove.current = true;
+      map.fitBounds(
+        [
+          [Math.min(...lons), Math.min(...lats)],
+          [Math.max(...lons), Math.max(...lats)],
+        ],
+        { padding: 48, maxZoom: 10, duration: 0 },
+      );
+      aimedRef.current = true;
+    }
+  }, [mapReady, filter.bbox, filter.lat, filter.lon, geojson]);
+
   // Card hover -> pin highlight via feature-state.
   const prevHovered = useRef<string | null>(null);
   useEffect(() => {
@@ -138,10 +176,11 @@ export default function ResultsMap() {
   return (
     <Map
       ref={mapRef}
-      initialViewState={SACRAMENTO}
+      initialViewState={NORTH_AMERICA}
       mapStyle={MAP_STYLE}
       style={{ width: "100%", height: "100%" }}
       interactiveLayerIds={["clusters", "pins"]}
+      onLoad={() => setMapReady(true)}
       onClick={onClick}
       onMouseEnter={() => {
         const canvas = mapRef.current?.getCanvas();
@@ -152,6 +191,11 @@ export default function ResultsMap() {
         if (canvas) canvas.style.cursor = "";
       }}
       onMoveEnd={() => {
+        // A camera aim isn't a user gesture — don't turn it into a filter.
+        if (programmaticMove.current) {
+          programmaticMove.current = false;
+          return;
+        }
         const bounds = mapRef.current?.getBounds();
         if (!bounds) return;
         const box = [

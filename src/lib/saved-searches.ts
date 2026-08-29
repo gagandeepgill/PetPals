@@ -51,9 +51,9 @@ export function describeFilters(filter: SearchFilter): string {
   if (filter.size?.length) parts.push(`size ${filter.size.join("/").toUpperCase()}`);
   if (filter.energy?.length) parts.push(`${filter.energy.join("/")} energy`);
   if (filter.goodWith?.length) parts.push(`good with ${filter.goodWith.join(" & ")}`);
-  if (filter.zip) {
+  if (filter.zip || (filter.lat !== undefined && filter.lon !== undefined)) {
     const radius = (RADII as readonly number[]).includes(filter.radius) ? filter.radius : 50;
-    parts.push(`within ${radius} mi of ${filter.zip}`);
+    parts.push(filter.zip ? `within ${radius} mi of ${filter.zip}` : `within ${radius} mi of you`);
   }
   if (filter.bbox) parts.push("in a map area");
   return parts.join(" · ");
