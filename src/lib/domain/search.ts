@@ -3,6 +3,14 @@ import type { AgeGroup, PetStatus, Species } from "./pet";
 
 export const RADII = [10, 25, 50, 100] as const;
 
+/** URL-safe boolean: z.coerce.boolean() is Boolean("false") === true — any
+ *  non-empty string coerces truthy, so "false" in a query string could never
+ *  turn a flag off. */
+const boolParam = z.preprocess(
+  (v) => (v === "true" ? true : v === "false" ? false : v),
+  z.boolean(),
+);
+
 /**
  * The search contract. This schema is simultaneously the route-handler
  * validator, the RSC searchParams parser, and the source of the nuqs parsers.
@@ -27,11 +35,11 @@ export const SearchFilterSchema = z
       .pipe(z.union([z.literal(10), z.literal(25), z.literal(50), z.literal(100)]))
       .default(50),
     energy: z.enum(["low", "moderate", "high", "very_high"]).array().optional(),
-    houseTrained: z.coerce.boolean().optional(),
+    houseTrained: boolParam.optional(),
     coat: z.enum(["hairless", "short", "medium", "long", "wire", "curly"]).array().optional(),
     goodWith: z.enum(["kids", "dogs", "cats"]).array().optional(),
     /** Tri-state semantics: "unknown" compat matches by default ("Ask the shelter"). */
-    includeUnknownCompat: z.coerce.boolean().default(true),
+    includeUnknownCompat: boolParam.default(true),
     /** "minLon,minLat,maxLon,maxLat" — written by the map's moveEnd, read by providers. */
     bbox: z
       .string()

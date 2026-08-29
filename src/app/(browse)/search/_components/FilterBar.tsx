@@ -3,6 +3,7 @@
 import styled from "@emotion/styled";
 import {
   parseAsArrayOf,
+  parseAsBoolean,
   parseAsFloat,
   parseAsNumberLiteral,
   parseAsString,
@@ -12,6 +13,13 @@ import {
 import { useState } from "react";
 import { RADII } from "@/lib/domain/search";
 import { formatRadius, isLikelyCanada } from "@/lib/units";
+import {
+  countActive,
+  FilterSheet,
+  GOODWITH_OPTIONS,
+  SIZE_OPTIONS,
+  type SheetValues,
+} from "./FilterSheet";
 
 const SPECIES_OPTIONS = ["dog", "cat", "rabbit", "bird", "other"] as const;
 const AGE_OPTIONS = ["baby", "young", "adult", "senior"] as const;
@@ -114,6 +122,7 @@ const AGE_LABELS: Record<(typeof AGE_OPTIONS)[number], string> = {
  */
 export function FilterBar() {
   const [geoState, setGeoState] = useState<"idle" | "asking" | "denied">("idle");
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [filters, setFilters] = useQueryStates(
     {
       species: parseAsStringLiteral(SPECIES_OPTIONS),
@@ -123,6 +132,12 @@ export function FilterBar() {
       lon: parseAsFloat,
       radius: parseAsNumberLiteral(RADII).withDefault(50),
       sort: parseAsStringLiteral(SORT_OPTIONS).withDefault("freshness"),
+      breed: parseAsString,
+      size: parseAsArrayOf(parseAsStringLiteral(SIZE_OPTIONS)),
+      sex: parseAsStringLiteral(["male", "female"] as const),
+      goodWith: parseAsArrayOf(parseAsStringLiteral(GOODWITH_OPTIONS)),
+      houseTrained: parseAsBoolean,
+      includeUnknownCompat: parseAsBoolean.withDefault(true),
       cursor: parseAsString,
       bbox: parseAsString,
     },
@@ -174,6 +189,45 @@ export function FilterBar() {
     void setFilters({ ageGroup: next.length ? next : null, cursor: null, bbox: null });
   };
 
+  const sheetValues: SheetValues = {
+    breed: filters.breed ?? "",
+    size: filters.size ?? [],
+    sex: filters.sex ?? "",
+    goodWith: filters.goodWith ?? [],
+    houseTrained: filters.houseTrained === true,
+    includeUnknownCompat: filters.includeUnknownCompat,
+  };
+  const advancedCount = countActive(sheetValues);
+
+  /** The non-sheet filters the sheet's live count must respect. */
+  const sheetBaseParams: Record<string, string> = Object.fromEntries(
+    Object.entries({
+      species: filters.species,
+      ageGroup: filters.ageGroup?.join(","),
+      zip: filters.zip,
+      lat: filters.lat,
+      lon: filters.lon,
+      radius: filters.radius,
+      bbox: filters.bbox,
+    })
+      .filter(([, v]) => v !== null && v !== undefined && v !== "")
+      .map(([k, v]) => [k, String(v)]),
+  );
+
+  const applySheet = (v: SheetValues) => {
+    setSheetOpen(false);
+    void setFilters({
+      breed: v.breed.trim() || null,
+      size: v.size.length ? (v.size as NonNullable<typeof filters.size>) : null,
+      sex: v.sex || null,
+      goodWith: v.goodWith.length ? (v.goodWith as NonNullable<typeof filters.goodWith>) : null,
+      houseTrained: v.houseTrained ? true : null,
+      includeUnknownCompat: v.includeUnknownCompat ? null : false,
+      cursor: null,
+      bbox: null,
+    });
+  };
+
   return (
     <FadeEdge role="group" aria-label="Filter pets">
       <Bar>
@@ -202,6 +256,14 @@ export function FilterBar() {
           aria-label={hasOrigin ? "Clear near-me filter" : "Show pets near your location"}
         >
           {geoState === "asking" ? "Locating…" : hasOrigin ? "Near you ✕" : "📍 Near me"}
+        </Chip>
+        <Chip
+          active={advancedCount > 0}
+          onClick={() => setSheetOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={sheetOpen}
+        >
+          Filters{advancedCount > 0 ? ` · ${advancedCount}` : ""}
         </Chip>
         {geoState === "denied" ? (
           <Field role="status">Location unavailable — try the map or a ZIP instead.</Field>
@@ -278,6 +340,14 @@ export function FilterBar() {
           </Select>
         </Field>
       </Bar>
+      {sheetOpen ? (
+        <FilterSheet
+          initial={sheetValues}
+          baseParams={sheetBaseParams}
+          onApply={applySheet}
+          onClose={() => setSheetOpen(false)}
+        />
+      ) : null}
     </FadeEdge>
   );
 }
