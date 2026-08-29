@@ -47,10 +47,11 @@ const OpenButton = styled.button`
 
 const NewBadge = styled.span`
   background: ${({ theme }) => theme.colors.accent};
-  color: ${({ theme }) => theme.colors.textInverse};
+  color: ${({ theme }) => theme.colors.textOnAccent};
   border-radius: ${({ theme }) => theme.radii.pill};
   font-size: ${({ theme }) => theme.typography.size.xs};
   font-weight: ${({ theme }) => theme.typography.weight.bold};
+  font-variant-numeric: tabular-nums;
   padding: 2px 10px;
   white-space: nowrap;
 `;
