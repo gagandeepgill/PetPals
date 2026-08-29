@@ -26,7 +26,7 @@ const Hero = styled.div<{ adopted?: boolean }>`
     inset: 0;
     pointer-events: none;
     border-radius: inherit;
-    border: 1px solid rgba(45, 42, 38, 0.08);
+    border: 1px solid ${({ theme }) => theme.colors.imageOutline};
   }
   ${({ theme }) => theme.mq.md} {
     aspect-ratio: 16 / 9;
@@ -51,15 +51,19 @@ const StatTile = styled.div`
   padding: ${({ theme }) => theme.space(3)};
   dt {
     font-size: ${({ theme }) => theme.typography.size.xs};
+    font-weight: ${({ theme }) => theme.typography.weight.medium};
     color: ${({ theme }) => theme.colors.textSecondary};
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: ${({ theme }) => theme.typography.tracking.caps};
     margin: 0 0 2px;
   }
+  /* Values are data, not display: body face, tabular digits — Fraunces here
+     read as decoration on what should scan like a spec sheet. */
   dd {
-    font-family: ${({ theme }) => theme.typography.fontDisplay};
     font-size: ${({ theme }) => theme.typography.size.md};
-    font-weight: ${({ theme }) => theme.typography.weight.display};
+    font-weight: ${({ theme }) => theme.typography.weight.bold};
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
     color: ${({ theme }) => theme.colors.textPrimary};
     margin: 0;
   }
@@ -113,6 +117,7 @@ const OrgCard = styled.aside`
 
 const OrgName = styled.p`
   font-family: ${({ theme }) => theme.typography.fontDisplay};
+  font-variation-settings: ${({ theme }) => theme.typography.displayVariationSmall};
   font-weight: ${({ theme }) => theme.typography.weight.bold};
   color: ${({ theme }) => theme.colors.trust};
   font-size: ${({ theme }) => theme.typography.size.md};
@@ -123,6 +128,16 @@ const OrgMeta = styled.p`
   color: ${({ theme }) => theme.colors.textSecondary};
   font-size: ${({ theme }) => theme.typography.size.sm};
   margin: 0 0 ${({ theme }) => theme.space(4)};
+  max-inline-size: 65ch;
+  text-wrap: pretty;
+`;
+
+const OrgFootnote = styled(OrgMeta)`
+  margin: ${({ theme }) => `${theme.space(3)} 0 0`};
+`;
+
+const ReportRow = styled.div`
+  margin-top: ${({ theme }) => theme.space(3)};
 `;
 
 const CelebrationBanner = styled.div`
@@ -131,7 +146,9 @@ const CelebrationBanner = styled.div`
   padding: ${({ theme }) => theme.space(4)};
   margin-bottom: ${({ theme }) => theme.space(4)};
   font-family: ${({ theme }) => theme.typography.fontDisplay};
+  font-variation-settings: ${({ theme }) => theme.typography.displayVariationSmall};
   font-weight: ${({ theme }) => theme.typography.weight.bold};
+  line-height: ${({ theme }) => theme.typography.lineHeight.snug};
   color: ${({ theme }) => theme.colors.textPrimary};
   a {
     color: ${({ theme }) => theme.colors.trust};
@@ -269,14 +286,14 @@ export function PetDetail({ pet, verifiedAgo }: { pet: Pet; verifiedAgo: string 
             Start adoption at {pet.organizationName} ↗
           </ButtonAnchor>
         ) : null}
-        <OrgMeta style={{ marginTop: 12, marginBottom: 0 }}>
+        <OrgFootnote>
           From here, you&apos;re in {pet.organizationName}&apos;s hands — they&apos;re the
           experts on {pet.name}. We never stand between you, and we never charge you.
-        </OrgMeta>
+        </OrgFootnote>
         {!gone ? (
-          <div style={{ marginTop: 12 }}>
+          <ReportRow>
             <ReportAdopted petId={pet.id} petName={pet.name} />
-          </div>
+          </ReportRow>
         ) : null}
       </OrgCard>
     </>

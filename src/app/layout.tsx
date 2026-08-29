@@ -15,6 +15,8 @@ const nunito = Nunito_Sans({
   subsets: ["latin"],
   variable: "--font-nunito",
   display: "swap",
+  // opsz 6-12: free small-size legibility on 12px facts/attribution lines.
+  axes: ["opsz"],
 });
 
 export const metadata: Metadata = {

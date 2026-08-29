@@ -15,6 +15,7 @@ export const PageTitle = styled.h1`
   font-size: ${({ theme }) => theme.typography.size["2xl"]};
   font-weight: ${({ theme }) => theme.typography.weight.display};
   line-height: ${({ theme }) => theme.typography.lineHeight.tight};
+  letter-spacing: ${({ theme }) => theme.typography.tracking.display};
   color: ${({ theme }) => theme.colors.textPrimary};
   margin: 0 0 ${({ theme }) => theme.space(2)};
   text-wrap: balance;
@@ -24,6 +25,7 @@ export const SectionTitle = styled.h2`
   font-family: ${({ theme }) => theme.typography.fontDisplay};
   font-size: ${({ theme }) => theme.typography.size.xl};
   font-weight: ${({ theme }) => theme.typography.weight.bold};
+  line-height: ${({ theme }) => theme.typography.lineHeight.snug};
   color: ${({ theme }) => theme.colors.textPrimary};
   margin: 0 0 ${({ theme }) => theme.space(3)};
 `;
@@ -31,12 +33,21 @@ export const SectionTitle = styled.h2`
 export const Muted = styled.p`
   color: ${({ theme }) => theme.colors.textSecondary};
   margin: 0 0 ${({ theme }) => theme.space(3)};
+  text-wrap: pretty;
+`;
+
+/* Long-form reading (pet descriptions): capped measure, comfortable rhythm. */
+export const Prose = styled.div`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  max-inline-size: 65ch;
+  text-wrap: pretty;
+  line-height: ${({ theme }) => theme.typography.lineHeight.body};
 `;
 
 const buttonVariants = (t: Theme) => ({
   primary: css({
     background: t.colors.accent,
-    color: t.colors.textInverse,
+    color: t.colors.textOnAccent,
     "&:hover": { background: t.colors.accentHover },
   }),
   secondary: css({
@@ -47,7 +58,7 @@ const buttonVariants = (t: Theme) => ({
   }),
   ghost: css({
     background: "transparent",
-    color: t.colors.accent,
+    color: t.colors.accentText,
     "&:hover": { background: t.colors.accentSubtle },
   }),
 });
@@ -68,9 +79,14 @@ export const Button = styled.button<{ variant?: ButtonVariant }>(
       alignItems: "center",
       gap: t.space(2),
       textDecoration: "none",
-      transition: `background ${t.motion.duration.fast} ${t.motion.easing.standard}`,
+      transition: `background ${t.motion.duration.fast} ${t.motion.easing.standard}, scale ${t.motion.duration.fast} ${t.motion.easing.standard}`,
       "&:disabled": { opacity: 0.5, cursor: "not-allowed" },
+      [t.mq.motionOk]: { "&:active:not(:disabled)": { scale: "0.96" } },
     }),
+  // Optically centered labels in pills (progressive: Chromium 133+/Safari 18.2+).
+  css`
+    text-box: trim-both cap alphabetic;
+  `,
   ({ theme, variant = "primary" }) => buttonVariants(theme)[variant],
 );
 
@@ -85,6 +101,7 @@ export const Badge = styled.span<{ tone?: "neutral" | "success" | "warning" | "d
   border-radius: ${({ theme }) => theme.radii.pill};
   font-size: ${({ theme }) => theme.typography.size.sm};
   font-weight: ${({ theme }) => theme.typography.weight.medium};
+  white-space: nowrap;
   background: ${({ theme }) => theme.colors.surfaceSunken};
   color: ${({ theme, tone }) =>
     tone === "success"
@@ -96,8 +113,10 @@ export const Badge = styled.span<{ tone?: "neutral" | "success" | "warning" | "d
           : theme.colors.textSecondary};
 `;
 
+/* Asymmetric gaps: photo-over-text stacks need more vertical than horizontal
+   separation, so each card's text binds to ITS photo, not the card below. */
 export const CardGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: ${({ theme }) => theme.space(5)};
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: ${({ theme }) => `${theme.space(8)} ${theme.space(5)}`};
 `;

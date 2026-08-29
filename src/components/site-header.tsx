@@ -35,7 +35,7 @@ const Nav = styled.nav`
     text-decoration: none;
     font-weight: ${({ theme }) => theme.typography.weight.medium};
     &:hover {
-      color: ${({ theme }) => theme.colors.accent};
+      color: ${({ theme }) => theme.colors.accentText};
     }
   }
 `;

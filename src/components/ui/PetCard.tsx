@@ -45,7 +45,8 @@ const Frame = styled.div`
     z-index: 1;
     pointer-events: none;
     border-radius: inherit;
-    border: 1px solid rgba(45, 42, 38, 0.08);
+    /* Untinted on purpose: a warm-tinted edge reads as dirt on photos. */
+    border: 1px solid ${({ theme }) => theme.colors.imageOutline};
   }
   img {
     object-fit: cover;
@@ -67,6 +68,8 @@ const Body = styled.div`
 
 const Name = styled.h3`
   font-family: ${({ theme }) => theme.typography.fontDisplay};
+  /* SOFT 60 at card size: full softness under ~20px reads as blur. */
+  font-variation-settings: ${({ theme }) => theme.typography.displayVariationSmall};
   font-size: ${({ theme }) => theme.typography.size.lg};
   font-weight: ${({ theme }) => theme.typography.weight.display};
   line-height: ${({ theme }) => theme.typography.lineHeight.tight};
@@ -75,7 +78,7 @@ const Name = styled.h3`
   transition: color ${({ theme }) =>
     `${theme.motion.duration.fast} ${theme.motion.easing.standard}`};
   article:hover & {
-    color: ${({ theme }) => theme.colors.accent};
+    color: ${({ theme }) => theme.colors.accentText};
   }
 `;
 
@@ -112,7 +115,9 @@ const PhotoChip = styled.span`
   color: ${({ theme }) => theme.colors.textPrimary};
   font-size: ${({ theme }) => theme.typography.size.xs};
   font-weight: ${({ theme }) => theme.typography.weight.bold};
-  padding: 4px 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding: ${({ theme }) => `${theme.space(1)} ${theme.space(2.5)}`};
   border-radius: ${({ theme }) => theme.radii.pill};
   box-shadow: ${({ theme }) => theme.shadows.sm};
 `;

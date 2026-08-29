@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Container, Muted, PageTitle } from "@/components/ui/primitives";
+import { Container, PageTitle, Prose } from "@/components/ui/primitives";
 import { getPetById } from "@/lib/pets";
 import { PetDetail } from "./_components/detail";
 
@@ -39,7 +39,7 @@ export default async function PetPage({ params }: Props) {
       <article style={{ maxWidth: 900, margin: "0 auto", padding: "32px 0 64px" }}>
         <PageTitle>Meet {pet.name}</PageTitle>
         <PetDetail pet={pet} verifiedAgo={timeAgo(pet.updatedAt)} />
-        {pet.description ? <Muted as="div">{pet.description}</Muted> : null}
+        {pet.description ? <Prose>{pet.description}</Prose> : null}
       </article>
     </Container>
   );

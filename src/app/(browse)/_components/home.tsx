@@ -19,15 +19,19 @@ const HeroWrap = styled.section`
 
 const Headline = styled.h1`
   font-family: ${({ theme }) => theme.typography.fontDisplay};
-  font-size: clamp(2rem, 5vw, ${({ theme }) => theme.typography.size["3xl"]});
+  font-size: ${({ theme }) => theme.typography.size["4xl"]};
   font-weight: ${({ theme }) => theme.typography.weight.display};
   line-height: ${({ theme }) => theme.typography.lineHeight.tight};
+  letter-spacing: ${({ theme }) => theme.typography.tracking.hero};
   color: ${({ theme }) => theme.colors.textPrimary};
   margin: 0 0 ${({ theme }) => theme.space(4)};
   text-wrap: balance;
+  /* The live count is the proof-of-life moment: at ~49px Fraunces' high-opsz
+     master already sharpens contrast — weight 600, not 800, or it goes lumpy. */
   strong {
-    color: ${({ theme }) => theme.colors.accent};
-    font-weight: inherit;
+    color: ${({ theme }) => theme.colors.accentText};
+    font-weight: 600;
+    font-variant-numeric: lining-nums tabular-nums;
   }
 `;
 
@@ -36,6 +40,7 @@ const Sub = styled.p`
   font-size: ${({ theme }) => theme.typography.size.lg};
   margin: 0 0 ${({ theme }) => theme.space(6)};
   max-width: 44ch;
+  text-wrap: pretty;
 `;
 
 /* Loose collage of real listing photos in slightly rotated frames —
@@ -125,6 +130,7 @@ export const SectionHeading = styled.h2`
   font-family: ${({ theme }) => theme.typography.fontDisplay};
   font-size: ${({ theme }) => theme.typography.size.xl};
   font-weight: ${({ theme }) => theme.typography.weight.bold};
+  line-height: ${({ theme }) => theme.typography.lineHeight.snug};
   color: ${({ theme }) => theme.colors.textPrimary};
   margin: 0 0 ${({ theme }) => theme.space(4)};
 `;
@@ -160,9 +166,13 @@ const Step = styled.li`
   }
 `;
 
+const TrustSection = styled.section`
+  padding: ${({ theme }) => `${theme.space(4)} 0 ${theme.space(12)}`};
+`;
+
 export function TrustStrip() {
   return (
-    <section aria-labelledby="how-it-works" style={{ padding: "16px 0 48px" }}>
+    <TrustSection aria-labelledby="how-it-works">
       <SectionHeading id="how-it-works">How this works (it&apos;s simple)</SectionHeading>
       <Steps>
         <Step>
@@ -184,7 +194,7 @@ export function TrustStrip() {
           </p>
         </Step>
       </Steps>
-    </section>
+    </TrustSection>
   );
 }
 
@@ -193,8 +203,11 @@ const CloseWrap = styled.section`
   padding: ${({ theme }) => `${theme.space(10)} 0 ${theme.space(16)}`};
   p {
     font-family: ${({ theme }) => theme.typography.fontDisplay};
+    /* Not an h-tag, so the global SOFT rule misses it. */
+    font-variation-settings: ${({ theme }) => theme.typography.displayVariation};
     font-size: ${({ theme }) => theme.typography.size.xl};
     font-weight: ${({ theme }) => theme.typography.weight.bold};
+    line-height: ${({ theme }) => theme.typography.lineHeight.snug};
     color: ${({ theme }) => theme.colors.textPrimary};
     margin: 0 0 ${({ theme }) => theme.space(5)};
     text-wrap: balance;
