@@ -4,6 +4,7 @@ import styled from "@emotion/styled";
 import Image from "next/image";
 import Link from "next/link";
 import { ButtonLink } from "@/components/ui/primitives";
+import { PetPhotoFallback } from "@/components/ui/PetPhotoFallback";
 import type { PetCardData } from "@/lib/domain/search";
 
 const HeroWrap = styled.section`
@@ -105,7 +106,9 @@ export function HomeHero({ total, faces }: { total: number; faces: PetCardData[]
             <PolaroidFrame>
               {pet.photo ? (
                 <Image src={pet.photo.url} alt={pet.photoAlt} fill sizes="220px" priority={i < 2} />
-              ) : null}
+              ) : (
+                <PetPhotoFallback name={pet.name} />
+              )}
             </PolaroidFrame>
             <PolaroidCaption>
               {pet.name}

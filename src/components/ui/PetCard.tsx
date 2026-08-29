@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { PetCardData } from "@/lib/domain/search";
 import { FavoriteToggle } from "./FavoriteToggle";
+import { PetPhotoFallback } from "./PetPhotoFallback";
 
 /* Borderless "quiet surface" card: the card IS photo + text stack. Separation
    comes from whitespace, not chrome. Hover = photo zoom, never lift. */
@@ -137,7 +138,9 @@ export function PetCard({ pet, priority = false }: { pet: PetCardData; priority?
               ? { placeholder: "blur" as const, blurDataURL: pet.photo.blurDataURL }
               : {})}
           />
-        ) : null}
+        ) : (
+          <PetPhotoFallback name={pet.name} />
+        )}
         {pet.distanceMi !== null && pet.distanceMi <= 5 ? (
           <PhotoChip>{pet.distanceMi} mi away</PhotoChip>
         ) : null}

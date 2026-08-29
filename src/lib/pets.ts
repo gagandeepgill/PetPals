@@ -50,8 +50,11 @@ export interface HeroStats {
 export function getHeroStats(): Promise<HeroStats> {
   return unstable_cache(
     async () => {
-      const response = await provider().searchPets(SearchFilterSchema.parse({ limit: 5 }));
-      return { total: response.total, faces: response.results.slice(0, 4) };
+      const response = await provider().searchPets(SearchFilterSchema.parse({ limit: 48 }));
+      // Real faces sell the hero: prefer pets with photos, pad if scarce.
+      const withPhotos = response.results.filter((p) => p.photo !== null);
+      const faces = [...withPhotos, ...response.results.filter((p) => p.photo === null)].slice(0, 4);
+      return { total: response.total, faces };
     },
     ["hero-stats"],
     { tags: ["pets"], revalidate: 900 },

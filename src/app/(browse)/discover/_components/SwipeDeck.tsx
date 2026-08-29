@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ButtonLink, Muted } from "@/components/ui/primitives";
+import { PetPhotoFallback } from "@/components/ui/PetPhotoFallback";
 import { parseSearchParams } from "@/lib/domain/search";
 import { useFavorites } from "@/lib/favorites";
 import { filterToParams, petKeys } from "@/lib/query-keys";
@@ -270,7 +271,9 @@ export function SwipeDeck() {
                   priority={depth === 0}
                   draggable={false}
                 />
-              ) : null}
+              ) : (
+                <PetPhotoFallback name={pet.name} />
+              )}
               <CardInfo>
                 <h2>
                   <Link href={`/pets/${pet.id}`}>{pet.name}</Link>
