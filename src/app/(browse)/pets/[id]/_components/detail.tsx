@@ -1,37 +1,12 @@
 "use client";
 
 import styled from "@emotion/styled";
-import Image from "next/image";
 import Link from "next/link";
 import type { Pet, TriState } from "@/lib/domain/pet";
 import { Badge, ButtonAnchor } from "@/components/ui/primitives";
 import { fitNotes, useQuizProfile } from "@/lib/quiz";
+import { PhotoGallery } from "./PhotoGallery";
 import { ReportAdopted } from "./ReportAdopted";
-
-const Hero = styled.div<{ adopted?: boolean }>`
-  position: relative;
-  aspect-ratio: 4 / 3;
-  border-radius: ${({ theme }) => theme.radii.lg};
-  overflow: hidden;
-  background: ${({ theme }) => theme.colors.surfaceSunken};
-  margin-bottom: ${({ theme }) => theme.space(4)};
-  img {
-    object-fit: cover;
-    object-position: center 30%;
-    ${({ adopted }) => (adopted ? "filter: saturate(0.7);" : "")}
-  }
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    border: 1px solid ${({ theme }) => theme.colors.imageOutline};
-  }
-  ${({ theme }) => theme.mq.md} {
-    aspect-ratio: 16 / 9;
-  }
-`;
 
 /* Stat tiles, not pills: pills read as tags, tiles read as data. */
 const StatGrid = styled.dl`
@@ -217,7 +192,6 @@ function compatSlot(label: string, value: TriState) {
 }
 
 export function PetDetail({ pet, verifiedAgo }: { pet: Pet; verifiedAgo: string }) {
-  const primaryPhoto = pet.photos[0];
   const breedLabel =
     pet.breed.rawBreedText || (pet.breed.isMixed ? "Mixed breed" : "Breed unknown");
   const gone = pet.status === "adopted" || pet.status === "removed";
@@ -235,16 +209,13 @@ export function PetDetail({ pet, verifiedAgo }: { pet: Pet; verifiedAgo: string 
         </PendingBanner>
       ) : null}
 
-      {primaryPhoto ? (
-        <Hero adopted={gone}>
-          <Image
-            src={primaryPhoto.url}
-            alt={`${pet.name}, a ${breedLabel}`}
-            fill
-            sizes="(max-width: 768px) 100vw, 900px"
-            priority
-          />
-        </Hero>
+      {pet.photos.length > 0 ? (
+        <PhotoGallery
+          photos={pet.photos}
+          name={pet.name}
+          breedLabel={breedLabel}
+          adopted={gone}
+        />
       ) : null}
 
       <StatGrid>
