@@ -4,6 +4,7 @@ import styled from "@emotion/styled";
 import Image from "next/image";
 import Link from "next/link";
 import type { PetCardData } from "@/lib/domain/search";
+import { formatDistance } from "@/lib/units";
 import { FavoriteToggle } from "./FavoriteToggle";
 import { PetPhotoFallback } from "./PetPhotoFallback";
 
@@ -122,10 +123,19 @@ const PhotoChip = styled.span`
   box-shadow: ${({ theme }) => theme.shadows.sm};
 `;
 
-export function PetCard({ pet, priority = false }: { pet: PetCardData; priority?: boolean }) {
+export function PetCard({
+  pet,
+  priority = false,
+  metric = false,
+}: {
+  pet: PetCardData;
+  priority?: boolean;
+  /** Render distances in km (the search layer decides from the origin). */
+  metric?: boolean;
+}) {
   const placeLabel =
     pet.distanceMi !== null
-      ? `${pet.distanceMi} mi`
+      ? formatDistance(pet.distanceMi, metric)
       : [pet.city, pet.state].filter(Boolean).join(", ");
   const facts = [pet.ageLabel, pet.breedLabel, placeLabel].filter(Boolean).join(" · ");
 
@@ -147,7 +157,7 @@ export function PetCard({ pet, priority = false }: { pet: PetCardData; priority?
           <PetPhotoFallback name={pet.name} />
         )}
         {pet.distanceMi !== null && pet.distanceMi <= 5 ? (
-          <PhotoChip>{pet.distanceMi} mi away</PhotoChip>
+          <PhotoChip>{formatDistance(pet.distanceMi, metric)} away</PhotoChip>
         ) : null}
         <FavoriteToggle petId={pet.id} petName={pet.name} />
       </Frame>

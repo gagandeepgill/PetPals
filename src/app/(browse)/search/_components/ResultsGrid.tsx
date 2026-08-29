@@ -11,6 +11,7 @@ import { CardGrid } from "@/components/ui/primitives";
 import { parseSearchParams } from "@/lib/domain/search";
 import { filterToParams, petKeys } from "@/lib/query-keys";
 import { fetchSearchPage } from "@/lib/search-client";
+import { isLikelyCanada } from "@/lib/units";
 import { usePetHover } from "./hover-context";
 
 const MIN_CARD_WIDTH = 240;
@@ -85,6 +86,9 @@ export function ResultsGrid() {
     () => parseSearchParams(Object.fromEntries(searchParams.entries())),
     [searchParams],
   );
+  // A Canadian origin reads distances in km; the wire format stays miles.
+  const metric =
+    filter.lat !== undefined && filter.lon !== undefined && isLikelyCanada(filter.lat, filter.lon);
 
   const query = useInfiniteQuery({
     queryKey: petKeys.search(filter),
@@ -238,7 +242,7 @@ export function ResultsGrid() {
       <div ref={containerRef}>
         {!mounted || width === 0 ? (
           <CardGrid>
-            {pets.slice(0, 24).map((pet, i) => cardWrap(i, <PetCard pet={pet} priority={i < 4} />))}
+            {pets.slice(0, 24).map((pet, i) => cardWrap(i, <PetCard pet={pet} priority={i < 4} metric={metric} />))}
           </CardGrid>
         ) : (
           <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
@@ -263,7 +267,7 @@ export function ResultsGrid() {
                   }}
                 >
                   {rowPets.map((pet, i) =>
-                    cardWrap(start + i, <PetCard pet={pet} priority={start + i < 4} />),
+                    cardWrap(start + i, <PetCard pet={pet} priority={start + i < 4} metric={metric} />),
                   )}
                 </div>
               );
