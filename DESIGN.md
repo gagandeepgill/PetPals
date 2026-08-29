@@ -27,6 +27,11 @@ who volunteers at the shelter.
 | Whole-card hover lift | Cards are borderless (photo + text stack); nothing to lift. Hover = photo zoom + name color. |
 | Animation library in v1 | Everything specs as CSS keyframes + imperative CSS variables. Sanctioned exception: Vaul (~5kb) for sheet drag physics only, if hand-rolling hurts. Motion-for-React (~34kb) fights the RSC boundary; GSAP is overkill with no timeline work in scope. |
 | Guilt copy, urgency badges, fake match percentages | Ethics and register. Banned words: journey, furever, unlock, seamless, "discover your perfect companion," platform. |
+| Terracotta `#E07A5F` as a TEXT color | 2.74:1 on sand — fails WCAG even for large text. Reading terracotta is `--pp-accent-text` (`#A84B35` light / `#F0A588` dark); `#E07A5F` is for filled surfaces only. Same audit: primary buttons are warm-ink-on-terracotta (cream label was 2.83:1), light focus ring is `#C96248` (300 was 1.87:1), warning text is honey-800. |
+| Cream label on primary buttons | See above — Hermès-style dark-on-orange passes AA (4.84:1) and reads more premium than blown-out cream. |
+| Static type scale + hand-rolled hero clamp | Replaced by a fluid Utopia scale (1.2 ratio @320px → 1.25 @1240px, rem bounds so zoom works) with a new `4xl` hero step. Tracking tokens: −0.015em hero, −0.01em display, +0.06em caps; nothing at body sizes — Fraunces/Nunito `opsz` handles those. |
+| Fraunces SOFT 100 at every size | Full softness under ~20px reads as blur; small Fraunces (card names, org names, banners) runs SOFT 60 (`displayVariationSmall`). WONK stays 0 everywhere. Fraunces is also banned from data slots — stat-tile values are body-face + `tabular-nums`. |
+| Warm-tinted photo edge (`rgba(45,42,38,…)`) | Tinted outlines pick up the photo underneath and read as dirt. `--pp-image-outline` is untinted black/white at 10%. |
 
 ## Palette
 
